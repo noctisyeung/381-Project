@@ -1,0 +1,51 @@
+<html>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--For responsive html-->
+    <head>
+    <link rel="stylesheet" href="/css/login.css" />
+    <title>S381F Project</title>
+    </head>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>
+        $(function(){
+        $('button[name="register"]').click(function(){
+            $('.login-form').css('display','none');
+            $('button[name="register"]').hide();
+            $('button[name="login"]').show();
+            $('.register-form').show();
+            $("#logRegPage").text("Register Page");
+         });
+        });
+        $(function(){
+        $('button[name="login"]').click(function(){
+            $('.register-form').css('display','none');
+            $('button[name="register"]').show();
+            $('button[name="login"]').hide();
+            $('.login-form').show();
+            $("#logRegPage").text("Login Page");
+         });
+        });
+    </script>
+    <body>
+        <div class = "login-page">
+        <h1 id='logRegPage'>Login Page</h1>
+        <div class = "form">
+        <form action = '/doLogin' method = 'post' class = 'login-form'>
+            User Name: <input type = 'text' name = 'userid' required><br>
+            Password: <input type = 'password' name = 'password' required><br>
+            <button type = 'submit'>Login</button>
+        </form>
+            
+        <form action = '/doRegister' method = 'post' class = 'register-form'>
+            User Name: <input type = 'text' name = 'userid' required><br>
+            Password: <input type = 'password' name = 'password' required><br>
+            Comfirm Password: <input type = 'password' name = 'repassword' required><br>
+            <button type = 'submit'>Register</button> 
+        </form>
+            <message><%= locals.error %></message>
+        <button name ='register'>Register</button>
+        <button name ='login'>Already Register?</button>
+        <p class = 'reMsg'>Please comfirm your password!!!</p>
+        </div>
+        </div>
+    </body>
+</html>

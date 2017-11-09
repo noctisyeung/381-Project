@@ -1,0 +1,21 @@
+{
+    "name": "server",
+    "description": "S381F Project",
+    "author": "Noctis Yeung <yeungkeihong@gmail.com>",
+    "version": "0.0.1",
+    "dependencies": {
+        "connect-flash": "^0.1.1",
+        "cookie-parser": "^1.4.3",
+        "ejs": "*",
+        "exif": "^0.6.0",
+        "express": "*",
+        "express-session": "^1.15.6",
+        "formidable": "^1.1.1",
+        "jQuery": "*",
+        "mongoose": "*"
+    },
+    "engine": "node >= 0.10.0",
+    "scripts": {
+        "start": "node server"
+    }
+}

@@ -1,0 +1,22 @@
+<html>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--For responsive html-->
+        <div class = 'header'>
+        <head>
+        <link rel="stylesheet" href="/css/main.css" />
+        <title>S381F Project Dashboard</title>
+        <h1>Restaurants</h1>
+        <h2 class = 'userDetail'><%=content%></h2>
+        </head>
+        </div>
+        <body>
+            <button onclick="location.href='/createRestaurant'">Create New Restaurants</button>
+                <table>
+                    <th>Name</th>
+                    <% for (var i in restaurants){%>
+                    <tr>
+                        <td><a href='/display?id=<%=restaurants[i]._id%>'><%=restaurants[i].name%></a></td>
+                    </tr>
+                    <%}%>
+                </table>
+        </body>
+    </html>

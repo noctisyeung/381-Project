@@ -1,0 +1,24 @@
+<html>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--For responsive html-->
+        <div class = 'header'>
+        <head>
+        <link rel="stylesheet" href="/css/main.css" />
+        <title>S381F Project Dashboard</title>
+        <h1>Restaurants</h1>
+        </head>
+        </div>
+        <body>
+                <ol>
+                    <li class = 'nostyle'>Borough: <%=restaurant.borough%></li>
+                    <li class = 'nostyle'>Cuisine: <%=restaurant.cuisine%></li>
+                    <li class = 'nostyle'>Street: <%=restaurant.address.street%></li>
+                    <li class = 'nostyle'>Building:<%=restaurant.address.building%></li>
+                    <li class = 'nostyle'>Zipcode:<%=restaurant.address.zipcode%></li>
+                    <li class = 'nostyle'>GPS: <%=restaurant.address.coord%></li>
+                        Rating: <ol >
+                            <li></li>
+                        </ol>
+                    <li class = 'nostyle'>Created by: <%=restaurant.owner%></li>
+                </ol>
+        </body>
+    </html>

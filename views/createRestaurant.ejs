@@ -1,0 +1,25 @@
+<html>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--For responsive html-->
+        <div class = 'header'>
+        <head>
+        <link rel="stylesheet" href="/css/main.css" />
+        <title>S381F Project Create New Restaurants</title>
+        <h1>Restaurants</h1>
+        <h2 class = 'userDetail'>Create New Restaurant</h2>
+        </head>
+        </div>
+        <body>
+            <form action="/doCreateRestaurants" method="post">
+                Name: <input type="text" name="name"><br>
+                Cuisine: <input type="text" name="cuisine"><br>
+                Street: <input type="text" name="street"><br>
+                Building: <input type="text" name="building"><br>
+                Zipcode: <input type="text" name="zipcode"><br>
+                GPS Coordinates (lon.): <input type="text" name="coordLon"><br>
+                GPS Coordinates (lat.): <input type="text" name="coordlat"><br>
+                <input type="hidden" name='userid' value=<%=userid%>>
+                Photos: <input type="file" name="filetoupload"><br>
+                <input type="submit" value="Create">
+            </form>
+        </body>
+    </html>
