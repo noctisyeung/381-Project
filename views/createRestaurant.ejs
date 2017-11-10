@@ -9,14 +9,15 @@
         </head>
         </div>
         <body>
-            <form action="/doCreateRestaurants" method="post">
+            <form action="/doCreateRestaurants" method="post" enctype='multipart/form-data'>
                 Name: <input type="text" name="name"><br>
+                Borough: <input type="text" name="borough"><br>
                 Cuisine: <input type="text" name="cuisine"><br>
                 Street: <input type="text" name="street"><br>
                 Building: <input type="text" name="building"><br>
                 Zipcode: <input type="text" name="zipcode"><br>
                 GPS Coordinates (lon.): <input type="text" name="coordLon"><br>
-                GPS Coordinates (lat.): <input type="text" name="coordlat"><br>
+                GPS Coordinates (lat.): <input type="text" name="coordLat"><br>
                 <input type="hidden" name='userid' value=<%=userid%>>
                 Photos: <input type="file" name="filetoupload"><br>
                 <input type="submit" value="Create">

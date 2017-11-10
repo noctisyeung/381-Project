@@ -9,6 +9,7 @@ var mongourl = 'mongodb://noctis:123456@ds141434.mlab.com:41434/noctisyeung';
 var ObjectId = require('mongodb').ObjectID;
 var ExifImage = require('exif').ExifImage;
 var formidable = require('formidable');
+var upload = require("express-fileupload");
 var loginCookie; //variable for cookie-session
 
 app.set('view engine', 'ejs');
@@ -24,6 +25,7 @@ app.use(session({ //setting up the session
         maxAge: 60 * 1000 //setting up the time limit of cookie (ms)
     }
    }));
+app.use(upload());
 
 app.get('/login',  function(req, res, next) { //For login page use
 res.render("login");
@@ -31,11 +33,12 @@ res.render("login");
 
 app.get('/main',  function(req, res, next) { //For main page use
     loginCookie = req.session;
+    var userid = null;
     if(loginCookie.userid){ //check is it still login
         MongoClient.connect(mongourl, function(err, db) {
             assert.equal(err,null);
             console.log('Connected to MongoDB\n');
-            findRestaurant(db,loginCookie.userid,function(result){ //fetching data in DB
+            findRestaurant(db,userid,function(result){ //fetching data in DB
             db.close();
             console.log('/main disconnected to MongoDB\n');
             if (result.length == 0){
@@ -94,6 +97,41 @@ app.get('/display', function(req,res,next) {
     return res.redirect('/login');
     });
 
+app.post('/doCreateRestaurants', function(req, res, next){ //This function is handling the create restaurant action
+    var restaurant = {};
+    restaurant['name'] = req.body.name;
+    if (req.body.borough)
+        restaurant['borough'] = req.body.borough;
+    if (req.body.cuisine)
+        restaurant['cuisine'] = req.body.cuisine;
+    if (req.body.street||req.body.building||req.body.zipcode){
+        var address = {};
+        if (req.body.street)
+            address['street'] = req.body.street;
+        if (req.body.building)
+            address['building'] = req.body.building;
+        if (req.body.street)
+            address['zipcode'] = req.body.zipcode;
+        if (req.body.coordLon&&req.body.coordLat){
+            var gps = [];
+            gps[0] = req.body.coordLon;
+            gps[1] = req.body.coordLat;
+            address['coord'] = gps;}
+        restaurant['address'] = address;  
+    }
+    if (req.file){
+        var mimetype = req.file.type;
+    }
+    restaurant['owner'] = req.body.userid;
+    MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('Connected to MongoDB\n');
+        addRestaurant(db,restaurant,function(result){
+        db.close();
+    });
+    });
+    return res.redirect('/main');
+});
 
 app.post('/doRegister', function(req, res, next){ //This function is handling the register action (*Not finsihed the error handling)
     var new_user = {};
@@ -152,9 +190,20 @@ function addUser(db,new_user,callback){ //This function is using with /doRegiste
     });
 }
 
+function addRestaurant(db,restaurant,callback){ //This function is using with /doRegister doing insert
+    db.collection('ownerRestaurants').insert(restaurant,function(err,result){
+    assert.equal(err,null);
+    console.log('Restaurant Created!!!');
+    callback(result);
+    });
+}
+
 function findRestaurant(db,userid,callback){ //This function is using with /doRegister doing insert
     var result = [];
+    if (userid != null)
     cursor = db.collection('ownerRestaurants').find({'owner': userid});
+    else
+    cursor = db.collection('ownerRestaurants').find();
     cursor.each(function(err,doc){
     assert.equal(err,null);
     if(doc!=null){
