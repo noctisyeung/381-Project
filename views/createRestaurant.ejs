@@ -10,7 +10,7 @@
         </div>
         <body>
             <form action="/doCreateRestaurants" method="post" enctype='multipart/form-data'>
-                Name: <input type="text" name="name"><br>
+                Name: <input type="text" name="name" required><br>
                 Borough: <input type="text" name="borough"><br>
                 Cuisine: <input type="text" name="cuisine"><br>
                 Street: <input type="text" name="street"><br>
@@ -22,5 +22,11 @@
                 Photos: <input type="file" name="filetoupload"><br>
                 <input type="submit" value="Create">
             </form>
+            <button onclick="goBack()">Go Back</button>
+            <script>
+                    function goBack() {
+                        window.history.back();
+                    }
+            </script>
         </body>
     </html>

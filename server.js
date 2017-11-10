@@ -7,8 +7,6 @@ var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var mongourl = 'mongodb://noctis:123456@ds141434.mlab.com:41434/noctisyeung';
 var ObjectId = require('mongodb').ObjectID;
-var ExifImage = require('exif').ExifImage;
-var formidable = require('formidable');
 var upload = require("express-fileupload");
 var loginCookie; //variable for cookie-session
 
@@ -19,10 +17,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser('sessiontest')); //setting up the cookie
 app.use(session({ //setting up the session
     secret: 'sessiontest',
-    resave: false,
+    resave: true,
     saveUninitialized: false,
     cookie: {
-        maxAge: 60 * 1000 //setting up the time limit of cookie (ms)
+        maxAge: 200 * 1000 //setting up the time limit of cookie (ms)
     }
    }));
 app.use(upload());
@@ -99,13 +97,14 @@ app.get('/display', function(req,res,next) {
 
 app.post('/doCreateRestaurants', function(req, res, next){ //This function is handling the create restaurant action
     var restaurant = {};
+    var address = {};
+    //This section is using to check the value in create form and innitial it to restaurant---------
     restaurant['name'] = req.body.name;
     if (req.body.borough)
         restaurant['borough'] = req.body.borough;
     if (req.body.cuisine)
         restaurant['cuisine'] = req.body.cuisine;
     if (req.body.street||req.body.building||req.body.zipcode){
-        var address = {};
         if (req.body.street)
             address['street'] = req.body.street;
         if (req.body.building)
@@ -119,15 +118,20 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
             address['coord'] = gps;}
         restaurant['address'] = address;  
     }
-    if (req.file){
-        var mimetype = req.file.type;
+    else
+        restaurant['address'] = address; //return if empty
+    if (req.files.filetoupload){ // This is checking the photo
+        restaurant['photo'] = req.files.filetoupload.data.toString('base64'); //change the photo to base64 and innitial it to photo
+        restaurant['photo mimetype'] = req.files.filetoupload.mimetype; //get the mimetype
     }
     restaurant['owner'] = req.body.userid;
+    //This section is using to check the value in create form and innitial it to restaurant---------
     MongoClient.connect(mongourl, function(err, db) {
         assert.equal(err,null);
-        console.log('Connected to MongoDB\n');
+        console.log('/doCreateRestaurants Connected to MongoDB\n');
         addRestaurant(db,restaurant,function(result){
         db.close();
+        console.log('/doCreateRestaurants disconnected to MongoDB\n');
     });
     });
     return res.redirect('/main');
@@ -173,7 +177,7 @@ app.post('/doLogin',function(req,res, next){ //This function is handling the log
         next();} 
         else{
         console.log('test2');
-        return res.render('login', {flag: 1});
+        return res.render('login', {flag: 1}); //flag is not using right now
         return next();}}
         else{
         return res.send('userid not exist');
@@ -190,7 +194,7 @@ function addUser(db,new_user,callback){ //This function is using with /doRegiste
     });
 }
 
-function addRestaurant(db,restaurant,callback){ //This function is using with /doRegister doing insert
+function addRestaurant(db,restaurant,callback){ //This function is using with /doCreateRestaurant doing insert
     db.collection('ownerRestaurants').insert(restaurant,function(err,result){
     assert.equal(err,null);
     console.log('Restaurant Created!!!');
@@ -198,7 +202,7 @@ function addRestaurant(db,restaurant,callback){ //This function is using with /d
     });
 }
 
-function findRestaurant(db,userid,callback){ //This function is using with /doRegister doing insert
+function findRestaurant(db,userid,callback){ //This function is using to findRestaurant
     var result = [];
     if (userid != null)
     cursor = db.collection('ownerRestaurants').find({'owner': userid});
