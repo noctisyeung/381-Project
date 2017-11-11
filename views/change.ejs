@@ -11,12 +11,13 @@
         <h1>Error</h1>
         <p>You are not the owner!!</p>
         <button onclick="goBack()">Back</button>
-    <%}else{%>
+    <%}if (title.vaild == "Change New Restaurant"){%>
     <h1>Modify Restaurant test</h1>
-    <form action="/change" method="post">
+    <form action="/change" method="post" enctype="multipart/form-data">
     <p>
+
     <input type="hidden" name="_id" value="<%=restaurant._id%>">
-  
+
     <input required name="name" required value="<%=restaurant.name%>" >
     <label>Name</label></p>
     <p>
@@ -35,24 +36,23 @@
     <input name="zipcode"class="" type="text" value="<%=restaurant.address.zipcode%>" >
     <label class="">Zipcode</label></p>
     <p>
-    <p>
-    <input name="lon"class="" type="text" value="<%=restaurant.address.coord[0]%>" >
+    <input name="lon"class="" type="text" value="<%=(restaurant.address.coord)?restaurant.address.coord[0]: ""%>" >
     <label class="">GPS Coordinates (lon.)</label></p>
     <p>
-    <input name="lat"class="" type="text" value="<%=restaurant.address.coord[1]%>" >
+    <input name="lat"class="" type="text" value="<%=(restaurant.address.coord)?restaurant.address.coord[1]: ""%>" >
     <label class="">GPS Coordinates (lat.)</label></p>
     <p>
-    <input name="sampleFile"class="" type="file" >
+    <input type="file" name="filetoupload">
     <label class="">Photo</label></p>
     <p>
         <button type = 'submit'>Edit</button></p>
   </form>
+  <button onclick="goBack()">Go Back</button>
 
 
-
-
-
+<%}if (title.vaild == "updated"){%>
+    <h1>Updated!</h1>
+    <button onclick="location.href='/main'">Home</button>
 <%}%>
-
 </body>
 </html>

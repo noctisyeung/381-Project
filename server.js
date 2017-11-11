@@ -85,6 +85,7 @@ app.get('/change', function(req,res,next) { //edit button handler in the display
                     return res.render("change",{title: {vaild:"Error"}});
                 }
                 else{
+                    console.log(doc);
                     return res.render("change",{title: {vaild:"Change New Restaurant"},restaurant: doc});
                 }
             });
@@ -99,29 +100,43 @@ app.post('/change', function(req,res,next) { //edit button handler in the change
     var id = req.query.id;
     if(loginCookie.userid){ //check is it still login
         var criteria = {};
-        var perUpdate = {}; //store the input
         criteria['_id'] = ObjectId(req.body._id);
-        perUpdate.address = [];
-        perUpdate.address.GPS = [];
-        for(var key in req.body){
-            if (key != "_id" && req.body[key]) {
-            if(key == "street"|| key == "building"|| key == "zipcode"){
-                perUpdate.address[key] = req.body[key];
-            }
-            if(key == "lon"|| key == "lat"){
-                perUpdate.address.GPS[key]= req.body[key];
-            }else
-				perUpdate[key] = req.body[key];
+        var restaurant = {};//store the input
+        var address = {};
+        //This section is using to check the value in create form and innitial it to restaurant---------
+        restaurant['name'] = req.body.name;
+        if (req.body.borough)
+            restaurant['borough'] = req.body.borough;
+        if (req.body.cuisine)
+            restaurant['cuisine'] = req.body.cuisine;
+        if (req.body.street||req.body.building||req.body.zipcode){
+            if (req.body.street)
+                address['street'] = req.body.street;
+            if (req.body.building)
+                address['building'] = req.body.building;
+            if (req.body.street)
+                address['zipcode'] = req.body.zipcode;
+            if (req.body.lon&&req.body.lat){
+                var gps = [];
+                gps[0] = req.body.lon;
+                gps[1] = req.body.lat;
+                address['coord'] = gps;}
+            restaurant['address'] = address;  
         }
-    }
+        else
+            restaurant['address'] = address; //return if empty
+        if (req.files.filetoupload){ // This is checking the photo
+            restaurant['photo'] = req.files.filetoupload.data.toString('base64'); //change the photo to base64 and innitial it to photo
+            restaurant['photo mimetype'] = req.files.filetoupload.mimetype; //get the mimetype
+        }
         MongoClient.connect(mongourl, function(err, db) {//connect with mongo
         assert.equal(err,null);
         console.log('Connected to MongoDB\n');
-        doupdate(db,criteria,perUpdate,function(result){//pass the value and call the update function , callback
+        doupdate(db,criteria,restaurant,function(result){//pass the value and call the update function , callback
             db.close();
             console.log('/main disconnected to MongoDB\n');
             console.log("update finish");
-            return res.render("display",{restaurant: result});
+            return res.render("change",{title: {vaild:"updated"}});
             });
         });
     }
