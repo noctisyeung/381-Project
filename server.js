@@ -20,7 +20,7 @@ app.use(session({ //setting up the session
     resave: true,
     saveUninitialized: false,
     cookie: {
-        maxAge: 200 * 1000 //setting up the time limit of cookie (ms)
+        maxAge: 500 * 1000 //setting up the time limit of cookie (ms)
     }
    }));
 app.use(upload());
@@ -95,6 +95,21 @@ app.get('/display', function(req,res,next) {
     return res.redirect('/login');
     });
 
+app.get('/gmap', function(req,res,next){ // Handling the google map function
+    loginCookie = req.session;
+    if (loginCookie.userid){
+    res.render("gmap.ejs", {
+        lat:req.query.lat,
+        lon:req.query.lon,
+        title:req.query.title
+    });
+    res.end();
+    }
+    else //If not logged in or timeout, redirect to login
+    return res.redirect('/login');
+});
+
+
 app.post('/doCreateRestaurants', function(req, res, next){ //This function is handling the create restaurant action
     var restaurant = {};
     var address = {};
@@ -138,6 +153,7 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
 });
 
 app.post('/doRegister', function(req, res, next){ //This function is handling the register action (*Not finsihed the error handling)
+    loginCookie = req.session;
     var new_user = {};
     if (req.body.userid)
         new_user['userid'] = req.body.userid;
@@ -153,7 +169,9 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
         addUser(db,new_user,function(result){
         db.close();
     });
-    });}
+    });
+    loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
+    return res.redirect('/main')}
 });
 
 app.post('/doLogin',function(req,res, next){ //This function is handling the login action
@@ -176,7 +194,7 @@ app.post('/doLogin',function(req,res, next){ //This function is handling the log
         return res.redirect('/main');
         next();} 
         else{
-        console.log('test2');
+        //console.log('test2'); //testing use
         return res.render('login', {flag: 1}); //flag is not using right now
         return next();}}
         else{
@@ -205,9 +223,9 @@ function addRestaurant(db,restaurant,callback){ //This function is using with /d
 function findRestaurant(db,userid,callback){ //This function is using to findRestaurant
     var result = [];
     if (userid != null)
-    cursor = db.collection('ownerRestaurants').find({'owner': userid});
+    cursor = db.collection('ownerRestaurants').find({'owner': userid}); //For other use
     else
-    cursor = db.collection('ownerRestaurants').find();
+    cursor = db.collection('ownerRestaurants').find(); //For main use
     cursor.each(function(err,doc){
     assert.equal(err,null);
     if(doc!=null){
