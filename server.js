@@ -69,6 +69,112 @@ app.get('/createRestaurant', function(req,res,next) { //Get the createRestaurant
     return res.redirect('/login');
     });
 
+app.get('/change', function(req,res,next) { //edit button handler in the display page
+        loginCookie = req.session;
+        var id = req.query.id;
+        if(loginCookie.userid){ //check is it still login
+            MongoClient.connect(mongourl, function(err, db) {
+                assert.equal(err,null);
+                console.log('Connected to MongoDB\n');
+                db.collection('ownerRestaurants').findOne({'_id':  ObjectId(id)},function(err,doc){ //check owner
+                db.close();
+                console.log('/main disconnected to MongoDB\n');
+                if (doc.owner != loginCookie.userid){// if user not own the data
+                    res.status(500);
+                    return res.render("change",{title: {vaild:"Error"}});
+                }
+                else{
+                    return res.render("change",{title: {vaild:"Change New Restaurant"},restaurant: doc});
+                }
+            });
+            });
+        }
+        else
+        return res.redirect('/login');
+        });
+
+app.post('/change', function(req,res,next) { //edit button handler in the change page
+    loginCookie = req.session;
+    var id = req.query.id;
+    if(loginCookie.userid){ //check is it still login
+        var criteria = {};
+        var perUpdate = {}; //store the input
+        criteria['_id'] = ObjectId(req.body._id);
+        perUpdate.address = [];
+        perUpdate.address.GPS = [];
+        for(var key in req.body){
+            if (key != "_id" && req.body[key]) {
+            if(key == "street"|| key == "building"|| key == "zipcode"){
+                perUpdate.address[key] = req.body[key];
+            }
+            if(key == "lon"|| key == "lat"){
+                perUpdate.address.GPS[key]= req.body[key];
+            }else
+				perUpdate[key] = req.body[key];
+        }
+    }
+        MongoClient.connect(mongourl, function(err, db) {//connect with mongo
+        assert.equal(err,null);
+        console.log('Connected to MongoDB\n');
+        doupdate(db,criteria,perUpdate,function(result){//pass the value and call the update function , callback
+            db.close();
+            console.log('/main disconnected to MongoDB\n');
+            console.log("update finish");
+            return res.render("display",{restaurant: result});
+            });
+        });
+    }
+    else
+        return res.redirect('/login');
+});
+
+app.get('/remove',function(req,res,next){ //delete button handler in the display page
+    loginCookie = req.session;
+    var id = req.query.id;
+    if(loginCookie.userid){ //check is it still login
+        MongoClient.connect(mongourl, function(err, db) {
+            assert.equal(err,null);
+            console.log('Connected to MongoDB\n');
+            db.collection('ownerRestaurants').findOne({'_id':  ObjectId(id)},function(err,doc){ //check owner
+            db.close();
+            console.log('/main disconnected to MongoDB\n');
+            if (doc.owner != loginCookie.userid){// if user not own the data
+                res.status(500);
+                return res.render("delete",{title: {vaild:"Error"}});
+            }
+            else{
+                return res.render("delete",{title: {vaild:"Delete"},restaurant: doc});
+            }
+        });
+        });
+    }
+    else
+    return res.redirect('/login');
+    });
+
+app.post('/remove', function(req,res,next) { //delete button handler in the delete page
+        loginCookie = req.session;
+        var id = req.query.id;
+        if(loginCookie.userid){ //check is it still login
+            var criteria = {};
+            criteria['_id'] = ObjectId(req.body._id);
+            MongoClient.connect(mongourl, function(err, db) {
+            assert.equal(err,null);
+            console.log('Connected to MongoDB\n');
+            dodelete(db,criteria,function(result){
+                db.close();
+                console.log('/main disconnected to MongoDB\n');
+                console.log("delete finish");
+                return res.render("delete",{title: {vaild:"Deleted"}});
+                });
+            });
+        }
+        else
+            return res.redirect('/login');
+    });
+
+
+
 app.get('/display', function(req,res,next) { 
     loginCookie = req.session;
     var id = req.query.id;
@@ -150,7 +256,7 @@ function addUser(db,new_user,callback){ //This function is using with /doRegiste
     console.log('User Created');
     callback(result);
     });
-}
+};
 
 function findRestaurant(db,userid,callback){ //This function is using with /doRegister doing insert
     var result = [];
@@ -164,6 +270,22 @@ function findRestaurant(db,userid,callback){ //This function is using with /doRe
         callback(result);
     }
     });
-}
+};
+
+function doupdate(db,criteria,newdata,callback){
+    db.collection('ownerRestaurants').updateOne(
+		criteria,{$set: newdata},function(err,result) {
+			assert.equal(err,null);
+			console.log("update was successfully");
+			callback(result);
+	});
+};
+function dodelete(db,criteria,callback) {
+	db.collection('ownerRestaurants').deleteMany(criteria,function(err,result) {
+		assert.equal(err,null);
+		console.log("Delete was successfully");
+		callback(result);
+    });
+};
 
 app.listen(process.env.PORT || 8099);

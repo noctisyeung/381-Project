@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title><%=title.vaild%></title>
+    <script>function goBack(){
+        
+        window.history.back();   
+    }</script>
+    </head>
+    <body>
+        <% if (title.vaild == "Error"){%>
+            <h1>Error</h1>
+            <p>You are not the owner!!</p>
+            <button onclick="goBack()">Back</button>
+        <%}if (title.vaild == "Delete"){%>
+        <h1>Delete</h1>
+        <p>Sure wanna delete it?</p>
+        <form action="/remove" method="post">
+        <p>
+        <input type="hidden" name="_id" value="<%=restaurant._id%>">
+            <button type = 'submit'>Delete</button></p>
+      </form>
+    <%}if (title.vaild == "Deleted"){%>
+        <p>Deleted!!</p>
+        <button onclick="location.href='/main'">Home</button>
+        <%}%>
+    </body>
+    </html>
