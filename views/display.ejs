@@ -8,6 +8,9 @@
         </head>
         </div>
         <body>
+            <%if (restaurant.photo){%>
+                <img src="data:<%=restaurant.photomimetype%>;base64,<%=restaurant.photo%>">
+                <%}%>
                 <ol>
                     <li class = 'nostyle'>Borough: <%=restaurant.borough%></li>
                     <li class = 'nostyle'>Cuisine: <%=restaurant.cuisine%></li>
@@ -22,5 +25,14 @@
                 </ol>
                 <button onclick="location.href='/change?id=<%=restaurant._id%>'">Edit</button>
                 <button onclick="location.href='/remove?id=<%=restaurant._id%>'">Delete</button>
+                <% if(restaurant.address.coord){%>
+                <a href = '/gmap?lat=<%=restaurant.address.coord[0]%>&lon=<%=restaurant.address.coord[1]%>&title=<%=restaurant.name%>'>Google Map</a><br>
+                <%}%>
+                <button onclick="goBack()">Go Back</button>
+                <script>
+                        function goBack() {
+                            window.history.back();
+                        }
+                </script>
         </body>
     </html>
