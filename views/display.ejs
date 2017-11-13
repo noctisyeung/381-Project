@@ -18,11 +18,31 @@
                     <li class = 'nostyle'>Building:<%=restaurant.address.building%></li>
                     <li class = 'nostyle'>Zipcode:<%=restaurant.address.zipcode%></li>
                     <li class = 'nostyle'>GPS: <%=restaurant.address.coord%></li>
-                        Rating: <ol >
-                            <li></li>
-                        </ol>
+                    <li class = 'nostyle'>Rating:<ul>
+                    <% for(var key in restaurant.rate){%>
+                        <li>Score: <%=restaurant.rate[key].score%>  By: [<%=restaurant.rate[key].user%>]</li>
+                    <%}%>
+                    </ul>
                     <li class = 'nostyle'>Created by: <%=restaurant.owner%></li>
                 </ol>
+                <form action='/rate' method="post" enctype='multipart/form-data'>
+                    <input type="hidden" name="_id" value="<%=restaurant._id%>">
+                    <select name="score" id = "score">Rate:
+                    <option value = "1">1</option>
+                    <option value = "2">2</option>
+                    <option value = "3">3</option>
+                    <option value = "4">4</option>
+                    <option value = "5">5</option>
+                    <option value = "6">6</option>
+                    <option value = "7">7</option>
+                    <option value = "8">8</option>
+                    <option value = "9">9</option>
+                    <option value = "10">10</option>
+                    </select>
+                    <%if(rated == true){%>You already rated!</br>
+                    <input type="submit" value="Rate" disabled><%}else{%>
+                    <input type="submit" value="Rate" > <%}%>   
+                </form>
                 <button onclick="location.href='/change?id=<%=restaurant._id%>'">Edit</button>
                 <button onclick="location.href='/remove?id=<%=restaurant._id%>'">Delete</button>
                 <% if(restaurant.address.coord){%>

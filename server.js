@@ -97,7 +97,6 @@ app.get('/change', function(req,res,next) { //edit button handler in the display
 
 app.post('/change', function(req,res,next) { //edit button handler in the change page
     loginCookie = req.session;
-    var id = req.query.id;
     if(loginCookie.userid){ //check is it still login
         var criteria = {};
         criteria['_id'] = ObjectId(req.body._id);
@@ -143,6 +142,33 @@ app.post('/change', function(req,res,next) { //edit button handler in the change
     else
         return res.redirect('/login');
 });
+
+app.post('/rate', function(req,res,next) { //edit button handler in the change page
+    loginCookie = req.session;
+    if(loginCookie.userid){ //check is it still login
+        var criteria = {};
+        criteria['_id'] = ObjectId(req.body._id);
+        console.log("score:"+req.body.score);
+        var score ={user : loginCookie.userid,score:req.body.score};
+        //This section is using to check the value in create form and innitial it to restaurant---------
+        MongoClient.connect(mongourl, function(err, db) {//connect with mongo
+        assert.equal(err,null);
+        console.log('Connected to MongoDB\n');
+        dorate(db,criteria,score,function(result){//pass the value and call the update function , callback
+            db.close();
+            console.log('/rate disconnected to MongoDB\n');
+            console.log("rate finish");
+            return res.redirect('/display?id='+req.body._id);
+            });
+        });
+    }
+    else
+        return res.redirect('/login');
+});
+
+
+
+
 
 app.get('/remove',function(req,res,next){ //delete button handler in the display page
     loginCookie = req.session;
@@ -206,8 +232,18 @@ app.get('/display', function(req,res,next) {
                 return res.render("display",{restaurant: {}});
             }
             else{
+                var rated = false;
+                for(var key in doc.rate){
+                    if(doc.rate[key].user == loginCookie.userid)
+                        rated = true;
+                    }
+                if(doc.rate == null  || rated == true){
+                    return res.render("display",{restaurant: doc,rated:true});
+                }else{
                 //console.log(result);//testing use 
-                return res.render("display",{restaurant: doc});
+                console.log(doc.rate[0].user);
+                return res.render("display",{restaurant: doc,rated:false});
+                }
             }
         });
         });
@@ -373,5 +409,15 @@ function dodelete(db,criteria,callback) {
 		callback(result);
     });
 };
+
+function dorate(db,criteria,score,callback){
+    db.collection('ownerRestaurants').updateOne(
+		criteria,{$push:{rate: score}},function(err,result) {
+			assert.equal(err,null);
+			console.log("rate was successfully");
+			callback(result);
+	});
+};
+
 
 app.listen(process.env.PORT || 8099);
