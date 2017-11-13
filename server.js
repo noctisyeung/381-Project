@@ -31,12 +31,18 @@ res.render("login");
 
 app.get('/main',  function(req, res, next) { //For main page use
     loginCookie = req.session;
-    var userid = null;
+    var userid = loginCookie.userid;
+    var key = null;
     if(loginCookie.userid){ //check is it still login
         MongoClient.connect(mongourl, function(err, db) {
             assert.equal(err,null);
             console.log('Connected to MongoDB\n');
-            findRestaurant(db,userid,function(result){ //fetching data in DB
+            dofind(db,userid,function(result){
+                console.log('api function disconnected to MongoDB\n');
+                key = result._id;
+            });
+            userid = null;
+            dofind(db,userid,function(result){ //fetching data in DB
             db.close();
             console.log('/main disconnected to MongoDB\n');
             if (result.length == 0){
@@ -45,7 +51,7 @@ app.get('/main',  function(req, res, next) { //For main page use
             }
             else{
                 //console.log(result);//testing use 
-                return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: result});
+                return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: result,apikey:key});
             }
         });
         });
@@ -241,7 +247,6 @@ app.get('/display', function(req,res,next) {
                     return res.render("display",{restaurant: doc,rated:false});
                 }else{
                 //console.log(result);//testing use 
-                console.log(doc.rate[0].user);
                 return res.render("display",{restaurant: doc,rated:true});
                 }
             }
@@ -377,11 +382,16 @@ function addRestaurant(db,restaurant,callback){ //This function is using with /d
     });
 }
 
-function findRestaurant(db,userid,callback){ //This function is using to findRestaurant
+function dofind(db,userid,callback){ //This function is using to findRestaurant
     var result = [];
-    if (userid != null)
-    cursor = db.collection('ownerRestaurants').find({'owner': userid}); //For other use
-    else
+    if (userid != null){
+    console.log('finding api!!!');
+    cursor = db.collection('owner').findOne({'userid': userid},function(err,result){
+        assert.equal(err,null);
+        console.log(result._id);
+        callback(result);
+    }); //find api key
+    }else{
     cursor = db.collection('ownerRestaurants').find(); //For main use
     cursor.each(function(err,doc){
     assert.equal(err,null);
@@ -392,6 +402,7 @@ function findRestaurant(db,userid,callback){ //This function is using to findRes
         callback(result);
     }
     });
+};
 };
 
 function doupdate(db,criteria,newdata,callback){
