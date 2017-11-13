@@ -237,12 +237,12 @@ app.get('/display', function(req,res,next) {
                     if(doc.rate[key].user == loginCookie.userid)
                         rated = true;
                     }
-                if(doc.rate == null  || rated == true){
-                    return res.render("display",{restaurant: doc,rated:true});
+                if(doc.rate == null  || rated == false){
+                    return res.render("display",{restaurant: doc,rated:false});
                 }else{
                 //console.log(result);//testing use 
                 console.log(doc.rate[0].user);
-                return res.render("display",{restaurant: doc,rated:false});
+                return res.render("display",{restaurant: doc,rated:true});
                 }
             }
         });
