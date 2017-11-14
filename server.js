@@ -37,20 +37,21 @@ app.get('/main',  function(req, res, next) { //For main page use
         MongoClient.connect(mongourl, function(err, db) {
             assert.equal(err,null);
             console.log('Connected to MongoDB\n');
-            dofindapi(db,"getapi",userid,function(result1){
-                console.log('first /api function disconnected to MongoDB\n');
-                key = result1._id;
+            dofind(db,userid,function(result){
+                console.log('api function disconnected to MongoDB\n');
+                key = result._id;
             });
-            findRestaurant(db,"",function(result2){ //fetching data in DB
+            userid = null;
+            dofind(db,userid,function(result){ //fetching data in DB
             db.close();
-            console.log('sec /main disconnected to MongoDB\n');
-            if (result2.length == 0){
+            console.log('/main disconnected to MongoDB\n');
+            if (result.length == 0){
                 res.status(500);
                 return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: {}});
             }
             else{
                 //console.log(result);//testing use 
-                return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: result2,apikey:key});
+                return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: result,apikey:key});
             }
         });
         });
@@ -243,10 +244,9 @@ app.get('/display', function(req,res,next) {
                         rated = true;
                     }
                 if(doc.rate == null  || rated == false){
-                    console.log(doc);
                     return res.render("display",{restaurant: doc,rated:false});
                 }else{
-                //console.log(doc);//testing use 
+                //console.log(result);//testing use 
                 return res.render("display",{restaurant: doc,rated:true});
                 }
             }
@@ -307,16 +307,11 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
         assert.equal(err,null);
         console.log('/doCreateRestaurants Connected to MongoDB\n');
         addRestaurant(db,restaurant,function(result){
-            console.log('/docreate disConnected to MongoDB add data\n');
-                objid = result.ops[0]._id;
-                doupdate(db,{_id:objid},{restaurantid:objid},function(result2){//pass the value and call the update function , callback
-                db.close();
-                console.log('/added restid\n');
-                console.log('/doupdate disconnected to MongoDB add restid\n');
-                return res.redirect('/display?id='+objid);
-            });
-        });
+        db.close();
+        console.log('/doCreateRestaurants disconnected to MongoDB\n');
     });
+    });
+    return res.redirect('/main');
 });
 
 app.post('/doRegister', function(req, res, next){ //This function is handling the register action (*Not finsihed the error handling)
@@ -339,68 +334,6 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
     });
     loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
     return res.redirect('/main')}
-});
-
-app.post('/api/restaurant/create',function(req,res, next){
-    var criteria ={};
-    criteria['_id'] = ObjectId(req.body.api);
-    var restaurant = {};
-    var address = {};
-    var objid = null;
-    MongoClient.connect(mongourl, function(err, db) {//connect with mongo
-        assert.equal(err,null);
-        console.log('/api/restaurant/create Connected to MongoDB for checking api\n');
-        dofindapi(db,"matchapi",criteria,function(result){//pass the value and call the update function , callback
-            db.close();
-            console.log('/api/restaurant/create checking api disconnected to MongoDB\n');
-            if(result == null || req.body.name == null )
-            res.send({status: "failed"});
-            else{
-                restaurant['name'] = req.body.name;
-            if (req.body.borough)
-                restaurant['borough'] = req.body.borough;
-            if (req.body.cuisine)
-                restaurant['cuisine'] = req.body.cuisine;
-            if (req.body.street||req.body.building||req.body.zipcode){
-                if (req.body.street)
-                    address['street'] = req.body.street;
-                if (req.body.building)
-                    address['building'] = req.body.building;
-                if (req.body.street)
-                    address['zipcode'] = req.body.zipcode;
-                if (req.body.coordLon&&req.body.coordLat){
-                    var gps = [];
-                    gps[0] = req.body.coordLon;
-                    gps[1] = req.body.coordLat;
-                    address['coord'] = gps;}
-                restaurant['address'] = address;  
-            }
-            else
-                restaurant['address'] = address; //return if empty
-                restaurant['owner'] = result.userid;
-                /*if (req.files.filetoupload){ // This is checking the photo
-                    restaurant['photo'] = req.files.filetoupload.data.toString('base64'); //change the photo to base64 and innitial it to photo
-                    restaurant['photo mimetype'] = req.files.filetoupload.mimetype; //get the mimetype
-                }*/
-                MongoClient.connect(mongourl, function(err, db) {
-                    assert.equal(err,null);
-                    console.log('/api/restaurant/create Connected to MongoDB add data\n');
-                    addRestaurant(db,restaurant,function(result){
-                    console.log('/api/restaurant/create disConnected to MongoDB add data\n');
-                        objid = result.ops[0]._id;
-                        console.log("/api/restaurant/create "+ objid);
-                        doupdate(db,{_id:objid},{restaurantid:objid},function(result2){//pass the value and call the update function , callback
-                        db.close();
-                        console.log('/added restid\n');
-                        console.log('/doupdate disconnected to MongoDB add restid\n');
-                        res.send({status: "ok", _id: objid});  
-                    });
-                });
-            });
-        };
-
-    });
-    });
 });
 
 app.post('/doLogin',function(req,res, next){ //This function is handling the login action
@@ -449,27 +382,16 @@ function addRestaurant(db,restaurant,callback){ //This function is using with /d
     });
 }
 
-function dofindapi(db,type,criteria,callback){ //This function is using to findRestaurant
+function dofind(db,userid,callback){ //This function is using to findRestaurant
     var result = [];
-    if (type == "matchapi"){
-        console.log('matching api!!!');
-        cursor = db.collection('owner').findOne(criteria,function(err,result){
-            assert.equal(err,null);
-            callback(result);
-        }); 
-    }
-    if (type == "getapi"){ //find api key
+    if (userid != null){
     console.log('finding api!!!');
-    cursor = db.collection('owner').findOne({'userid': criteria},function(err,result){
+    cursor = db.collection('owner').findOne({'userid': userid},function(err,result){
         assert.equal(err,null);
-        console.log(result);
+        console.log(result._id);
         callback(result);
-    }); 
-    }
-};
-
-function findRestaurant(db,criteria,callback){ //This function is using to findRestaurant
-    var result = [];
+    }); //find api key
+    }else{
     cursor = db.collection('ownerRestaurants').find(); //For main use
     cursor.each(function(err,doc){
     assert.equal(err,null);
@@ -481,6 +403,7 @@ function findRestaurant(db,criteria,callback){ //This function is using to findR
     }
     });
 };
+};
 
 function doupdate(db,criteria,newdata,callback){
     db.collection('ownerRestaurants').updateOne(
@@ -488,7 +411,7 @@ function doupdate(db,criteria,newdata,callback){
 			assert.equal(err,null);
 			console.log("update was successfully");
 			callback(result);
-    });
+	});
 };
 function dodelete(db,criteria,callback) {
 	db.collection('ownerRestaurants').deleteMany(criteria,function(err,result) {
