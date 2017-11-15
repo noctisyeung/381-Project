@@ -1,6 +1,6 @@
 .header {
     background: grey;
-    height: 30%;
+    height: 20%;
     vertical-align: middle;
     text-align:center;
     top: 0;
@@ -10,7 +10,7 @@
 
 .userDetail{
     color: white;
-    line-height: 300px;
+    line-height: auto;
 }
 nav {
     line-height:30px;
