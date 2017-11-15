@@ -63,7 +63,7 @@ app.get('/main',  function(req, res, next) { //For main page use
 app.get('/', function(req,res,next) { //Redirect the user to login page
     loginCookie = req.session;
     if(loginCookie.userid) //check is it still login, if logged in and not timeout go to the main page
-    return res.redirct('/main')
+    return res.redirect('/main')
     else
     return res.redirect('/login');
     });

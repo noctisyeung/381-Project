@@ -10,8 +10,21 @@
         </head>
         </div>
         <body>
-            <button onclick="location.href='/createRestaurant'">Create New Restaurants</button>
-                <table>
+            <div id='search-box'>
+                    <form action='/doSearch' id='search-form' method='get' target='_top'>
+                    <input id='search-text' name='keyword' placeholder='Search' type='text'/>
+                    <select id='searchselect' name='option'>
+                            <option value='name'>Name</option>
+                            <option value='borough'>Borough</option>
+                            <option value='cuisine'>Cuisine</option> 
+                        </select> 
+                    <button id='search-button' type='submit'>                     
+                    <span>Search</span>
+                    </button>
+                    </form>
+             </div> 
+            <button onclick="location.href='/createRestaurant'" id='create'>Create New Restaurants</button>
+                <table id='customers'>
                     <th>Name</th>
                     <% for (var i in restaurants){%>
                     <tr>

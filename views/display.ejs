@@ -43,11 +43,11 @@
                     <input type="submit" value="Rate" disabled><%}else{%>
                     <input type="submit" value="Rate" > <%}%>   
                 </form>
+                <% if(restaurant.address.coord){%>
+                    <a href = '/gmap?lat=<%=restaurant.address.coord[0]%>&lon=<%=restaurant.address.coord[1]%>&title=<%=restaurant.name%>'>Google Map</a><br>
+                <%}%>
                 <button onclick="location.href='/change?id=<%=restaurant._id%>'">Edit</button>
                 <button onclick="location.href='/remove?id=<%=restaurant._id%>'">Delete</button>
-                <% if(restaurant.address.coord){%>
-                <a href = '/gmap?lat=<%=restaurant.address.coord[0]%>&lon=<%=restaurant.address.coord[1]%>&title=<%=restaurant.name%>'>Google Map</a><br>
-                <%}%>
                 <button onclick="goBack()">Go Back</button>
                 <script>
                         function goBack() {
