@@ -9,7 +9,6 @@ var mongourl = 'mongodb://noctis:123456@ds141434.mlab.com:41434/noctisyeung';
 var ObjectId = require('mongodb').ObjectID;
 var upload = require("express-fileupload");
 var loginCookie; //variable for cookie-session
-var findControl = 0;
 
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname + "/public")); // mkdir for css file
@@ -272,51 +271,6 @@ app.get('/gmap', function(req,res,next){ // Handling the google map function
     return res.redirect('/login');
 });
 
-app.get('/doSearch',function(req,res, next){ //Search function
-    var condition = {};
-    loginCookie = req.session;
-    if(loginCookie.userid){
-    if(req.query.keyword){
-    req.query.keyword = req.query.keyword.replace(/ /g ,'"\s"');
-    console.log(req.query.keyword);
-    switch(req.query.option){
-        case 'borough':
-            condition['borough'] =  new RegExp(req.query.keyword,'i');
-            break;
-        case 'cuisine':
-            condition['cuisine'] = new RegExp(req.query.keyword,'i');
-            break;
-        default:
-            condition['name'] = new RegExp(req.query.keyword,'i');
-            console.log('OK2');
-            break;
-    }
-    console.log(condition);
-    MongoClient.connect(mongourl, function(err, db) {
-        assert.equal(err,null);
-        console.log('/doSearch Connected to MongoDB\n');
-        findRestaurant(db,condition,function(result){ //searching the database
-        db.close();
-        console.log('/doSearch disconnected to MongoDB\n');
-        if (result.length == 0||result == undefined){
-            console.log(result);
-            res.render('searchResult',{message: 'No result',restaurants: {}});
-        }
-        else{
-            console.log(result);
-            res.render('searchResult',{message: 'Found '+result.length+' result',restaurants: result});
-        }
-    });
-    });}
-    else{
-    res.status(500);
-    res.render('searchResult',{message: 'Please Enter Something......',restaurants: {}});
-    res.end();}
-}
-    else
-    return res.redirect('/login');
-});
-
 
 app.post('/doCreateRestaurants', function(req, res, next){ //This function is handling the create restaurant action
     var restaurant = {};
@@ -516,10 +470,7 @@ function dofindapi(db,type,criteria,callback){ //This function is using to findR
 
 function findRestaurant(db,criteria,callback){ //This function is using to findRestaurant
     var result = [];
-    if (criteria == "")
     cursor = db.collection('ownerRestaurants').find(); //For main use
-    else
-    cursor = db.collection('ownerRestaurants').find(criteria);
     cursor.each(function(err,doc){
     assert.equal(err,null);
     if(doc!=null){
