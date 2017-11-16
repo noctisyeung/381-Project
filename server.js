@@ -33,6 +33,14 @@ app.get('/main',  function(req, res, next) { //For main page use
     loginCookie = req.session;
     var userid = loginCookie.userid;
     var key = null;
+    var criteria ={}
+    var query = req.query
+    if (query.name||query.borough||query.cuisine){
+        for (key in query){
+            criteria[key] = query[key];
+        }
+    }
+    console.log(criteria);
     if(loginCookie.userid){ //check is it still login
         MongoClient.connect(mongourl, function(err, db) {
             assert.equal(err,null);
@@ -41,7 +49,7 @@ app.get('/main',  function(req, res, next) { //For main page use
                 console.log('first /api function disconnected to MongoDB\n');
                 key = result1._id;
             });
-            findRestaurant(db,"",function(result2){ //fetching data in DB
+            findRestaurant(db,criteria,function(result2){ //fetching data in DB
             db.close();
             console.log('sec /main disconnected to MongoDB\n');
             if (result2.length == 0){
@@ -271,6 +279,51 @@ app.get('/gmap', function(req,res,next){ // Handling the google map function
     return res.redirect('/login');
 });
 
+app.get('/doSearch',function(req,res, next){ //Search function
+    var condition = {};
+    loginCookie = req.session;
+    if(loginCookie.userid){
+    if(req.query.keyword){
+    req.query.keyword = req.query.keyword.replace(/ /g ,'"\s"');
+    console.log(req.query.keyword);
+    switch(req.query.option){
+        case 'borough':
+            condition['borough'] =  new RegExp(req.query.keyword,'i');
+            break;
+        case 'cuisine':
+            condition['cuisine'] = new RegExp(req.query.keyword,'i');
+            break;
+        default:
+            condition['name'] = new RegExp(req.query.keyword,'i');
+            console.log('OK2');
+            break;
+    }
+    console.log(condition);
+    MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('/doSearch Connected to MongoDB\n');
+        findRestaurant(db,condition,function(result){ //searching the database
+        db.close();
+        console.log('/doSearch disconnected to MongoDB\n');
+        if (result.length == 0||result == undefined){
+            console.log(result);
+            res.render('searchResult',{message: 'No result',restaurants: {}});
+        }
+        else{
+            console.log(result);
+            res.render('searchResult',{message: 'Found '+result.length+' result',restaurants: result});
+        }
+    });
+    });}
+    else{
+    res.status(500);
+    res.render('searchResult',{message: 'Please Enter Something......',restaurants: {}});
+    res.end();}
+}
+    else
+    return res.redirect('/login');
+});
+
 
 app.post('/doCreateRestaurants', function(req, res, next){ //This function is handling the create restaurant action
     var restaurant = {};
@@ -470,7 +523,7 @@ function dofindapi(db,type,criteria,callback){ //This function is using to findR
 
 function findRestaurant(db,criteria,callback){ //This function is using to findRestaurant
     var result = [];
-    cursor = db.collection('ownerRestaurants').find(); //For main use
+    cursor = db.collection('ownerRestaurants').find(criteria,{name: 1});
     cursor.each(function(err,doc){
     assert.equal(err,null);
     if(doc!=null){
