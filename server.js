@@ -280,6 +280,32 @@ app.get('/gmap', function(req,res,next){ // Handling the google map function
 });
 
 
+app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
+    var type = req.params[0];               //getting the incomeing type form URL
+    var value = req.params[1];   //getting the incomeing value form URL
+    var condition = {};
+    switch(type){
+        case 'name':
+        condition['name'] = value;
+        break;
+        case 'borough':
+        condition['borough'] = value;
+        break;
+        case 'cuisine':
+        condition['cuisine'] = value;
+        break;
+        default:
+        return res.send({});
+    }
+    MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('/api doSearch Connected to MongoDB\n');
+        findRestaurant(db,condition,function(result){
+            console.log('/api doSearch disConnected to MongoDB\n');
+            return res.send(result);
+        });
+});
+});
 
 
 app.get('/doSearch',function(req,res, next){ //Search function
@@ -420,7 +446,8 @@ app.post('/api/restaurant/create',function(req,res, next){
             console.log('/api/restaurant/create checking api disconnected to MongoDB\n');
             if(result == null || req.body.name == null ){
                 console.log('No matched APIKEY!!');
-            res.send({status: "failed"});}
+                res.send({status: "failed"});}
+
             else{
                 restaurant['name'] = req.body.name;
             if (req.body.borough)
