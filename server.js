@@ -53,7 +53,7 @@ app.get('/main',  function(req, res, next) { //For main page use
                 console.log('first /api function disconnected to MongoDB\n');
                 key = result1.api;
             });
-            findRestaurant(db,criteria,function(result2){ //fetching data in DB
+            findRestaurant(db,'main',criteria,function(result2){ //fetching data in DB
             db.close();
             console.log('sec /main disconnected to MongoDB\n');
             if (result2.length == 0){
@@ -304,7 +304,7 @@ app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
     MongoClient.connect(mongourl, function(err, db) {
         assert.equal(err,null);
         console.log('/api doSearch Connected to MongoDB\n');
-        findRestaurant(db,condition,function(result){
+        findRestaurant(db,'api',condition,function(result){
             console.log('/api doSearch disConnected to MongoDB\n');
             return res.send(result);
         });
@@ -335,7 +335,7 @@ app.get('/doSearch',function(req,res, next){ //Search function
     MongoClient.connect(mongourl, function(err, db) {
         assert.equal(err,null);
         console.log('/doSearch Connected to MongoDB\n');
-        findRestaurant(db,condition,function(result){ //searching the database
+        findRestaurant(db,'search',condition,function(result){ //searching the database
         db.close();
         console.log('/doSearch disconnected to MongoDB\n');
         if (result.length == 0||result == undefined){
@@ -430,7 +430,6 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
     MongoClient.connect(mongourl, function(err, db) {
         assert.equal(err,null);
         console.log('Connected to MongoDB\n');
-<<<<<<< HEAD
         dofindapi(db,'finduser',{}, function(userresult){ // check existing user ?show message: pass
             for (var i=0;i<userresult.length;i++){
                 if (new_user['userid'] == userresult[i].userid){
@@ -447,18 +446,8 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
         }
         else{
             addUser(db,new_user,function(result){
-            db.close();
             errFlag = '';
             showReg = 0;
-            loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
-            return res.redirect('/main')
-        });
-        }
-    });
-    });
-}
-=======
-        addUser(db,new_user,function(result){
             console.log('/adding apikey!!\n');
             apikey = ObjectId(result.ops[0]._id).toString();    //ObjectId to String for adding restaurant id
             objid= result.ops[0]._id;   // get the object id
@@ -467,12 +456,13 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
             console.log('/added apikey\n');
             console.log('/doupdate disconnected to MongoDB add api\n');
             loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
-            return res.redirect('/main')
+            return res.redirect('/main');
+            });
         });
+        }
     });
     });
-    }
->>>>>>> 75c1007f72998c051c39a36f87531fc9018d8fd0
+}
 });
 
 app.post('/api/restaurant/create',function(req,res, next){
@@ -625,8 +615,20 @@ function dofindapi(db,type,criteria,callback){ //This function is using to findR
         }
 };
 
-function findRestaurant(db,criteria,callback){ //This function is using to findRestaurant
+function findRestaurant(db,type,criteria,callback){ //This function is using to findRestaurant
     var result = [];
+    if(type == 'api'){
+        cursor = db.collection('ownerRestaurants').find(criteria);
+        cursor.each(function(err,doc){
+        assert.equal(err,null);
+        if(doc!=null){
+            result.push(doc);
+        }
+        else{
+            callback(result);
+        }
+        });
+    }else{
     cursor = db.collection('ownerRestaurants').find(criteria,{name: 1});
     cursor.each(function(err,doc){
     assert.equal(err,null);
@@ -638,6 +640,7 @@ function findRestaurant(db,criteria,callback){ //This function is using to findR
     }
     });
 };
+}
 
 function doupdate(db,type,criteria,newdata,callback){
     if(type == 'api'){
