@@ -51,7 +51,7 @@ app.get('/main',  function(req, res, next) { //For main page use
             console.log('Connected to MongoDB\n');
             dofindapi(db,"getapi",userid,function(result1){
                 console.log('first /api function disconnected to MongoDB\n');
-                key = result1._id;
+                key = result1.api;
             });
             findRestaurant(db,criteria,function(result2){ //fetching data in DB
             db.close();
@@ -148,7 +148,7 @@ app.post('/change', function(req,res,next) { //edit button handler in the change
         MongoClient.connect(mongourl, function(err, db) {//connect with mongo
         assert.equal(err,null);
         console.log('Connected to MongoDB\n');
-        doupdate(db,criteria,restaurant,function(result){//pass the value and call the update function , callback
+        doupdate(db,'rest',criteria,restaurant,function(result){//pass the value and call the update function , callback
             db.close();
             console.log('/main disconnected to MongoDB\n');
             console.log("update finish");
@@ -283,6 +283,35 @@ app.get('/gmap', function(req,res,next){ // Handling the google map function
     return res.redirect('/login');
 });
 
+
+app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
+    var type = req.params[0];               //getting the incomeing type form URL
+    var value = req.params[1];   //getting the incomeing value form URL
+    var condition = {};
+    switch(type){
+        case 'name':
+        condition['name'] = value;
+        break;
+        case 'borough':
+        condition['borough'] = value;
+        break;
+        case 'cuisine':
+        condition['cuisine'] = value;
+        break;
+        default:
+        return res.send({});
+    }
+    MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('/api doSearch Connected to MongoDB\n');
+        findRestaurant(db,condition,function(result){
+            console.log('/api doSearch disConnected to MongoDB\n');
+            return res.send(result);
+        });
+});
+});
+
+
 app.get('/doSearch',function(req,res, next){ //Search function
     var condition = {};
     loginCookie = req.session;
@@ -367,8 +396,9 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
         console.log('/doCreateRestaurants Connected to MongoDB\n');
         addRestaurant(db,restaurant,function(result){
             console.log('/docreate disConnected to MongoDB add data\n');
-                objid = result.ops[0]._id;
-                doupdate(db,{_id:objid},{restaurantid:objid},function(result2){//pass the value and call the update function , callback
+                restid = ObjectId(result.ops[0]._id).toString();    //ObjectId to String for adding restaurant id
+                objid= result.ops[0]._id;   // get the object id
+                doupdate(db,'rest',{_id:objid},{restaurantid:restid},function(result2){//pass the value and call the update function , callback
                 db.close();
                 console.log('/added restid\n');
                 console.log('/doupdate disconnected to MongoDB add restid\n');
@@ -400,6 +430,7 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
     MongoClient.connect(mongourl, function(err, db) {
         assert.equal(err,null);
         console.log('Connected to MongoDB\n');
+<<<<<<< HEAD
         dofindapi(db,'finduser',{}, function(userresult){ // check existing user ?show message: pass
             for (var i=0;i<userresult.length;i++){
                 if (new_user['userid'] == userresult[i].userid){
@@ -426,11 +457,27 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
     });
     });
 }
+=======
+        addUser(db,new_user,function(result){
+            console.log('/adding apikey!!\n');
+            apikey = ObjectId(result.ops[0]._id).toString();    //ObjectId to String for adding restaurant id
+            objid= result.ops[0]._id;   // get the object id
+            doupdate(db,'api',{_id:objid},{api:apikey},function(result2){//pass the value and call the update function , callback
+            db.close();
+            console.log('/added apikey\n');
+            console.log('/doupdate disconnected to MongoDB add api\n');
+            loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
+            return res.redirect('/main')
+        });
+    });
+    });
+    }
+>>>>>>> 75c1007f72998c051c39a36f87531fc9018d8fd0
 });
 
 app.post('/api/restaurant/create',function(req,res, next){
     var criteria ={};
-    criteria['_id'] = ObjectId(req.body.api);
+    criteria['api'] = req.body.api;
     var restaurant = {};
     var address = {};
     var objid = null;
@@ -440,8 +487,10 @@ app.post('/api/restaurant/create',function(req,res, next){
         dofindapi(db,"matchapi",criteria,function(result){//pass the value and call the update function , callback
             db.close();
             console.log('/api/restaurant/create checking api disconnected to MongoDB\n');
-            if(result == null || req.body.name == null )
-            res.send({status: "failed"});
+            if(result == null || req.body.name == null ){
+                console.log('No matched APIKEY!!');
+                res.send({status: "failed"});}
+
             else{
                 restaurant['name'] = req.body.name;
             if (req.body.borough)
@@ -474,9 +523,10 @@ app.post('/api/restaurant/create',function(req,res, next){
                     console.log('/api/restaurant/create Connected to MongoDB add data\n');
                     addRestaurant(db,restaurant,function(result){
                     console.log('/api/restaurant/create disConnected to MongoDB add data\n');
-                        objid = result.ops[0]._id;
+                        restid = ObjectId(result.ops[0]._id).toString();    //ObjectId to String for adding restaurant id
+                        objid= result.ops[0]._id;   // get the object id
                         console.log("/api/restaurant/create "+ objid);
-                        doupdate(db,{_id:objid},{restaurantid:objid},function(result2){//pass the value and call the update function , callback
+                        doupdate(db,'rest',{_id:objid},{restaurantid:restid},function(result2){//pass the value and call the update function , callback
                         db.close();
                         console.log('/added restid\n');
                         console.log('/doupdate disconnected to MongoDB add restid\n');
@@ -589,13 +639,24 @@ function findRestaurant(db,criteria,callback){ //This function is using to findR
     });
 };
 
-function doupdate(db,criteria,newdata,callback){
-    db.collection('ownerRestaurants').updateOne(
+function doupdate(db,type,criteria,newdata,callback){
+    if(type == 'api'){
+    db.collection('owner').updateOne(
 		criteria,{$set: newdata},function(err,result) {
 			assert.equal(err,null);
-			console.log("update was successfully");
+            console.log("update was successfully");
+            
 			callback(result);
     });
+    }if(type == 'rest'){
+        db.collection('ownerRestaurants').updateOne(
+            criteria,{$set: newdata},function(err,result) {
+                assert.equal(err,null);
+                console.log("update was successfully");
+                callback(result);
+        });
+    }
+
 };
 function dodelete(db,criteria,callback) {
 	db.collection('ownerRestaurants').deleteMany(criteria,function(err,result) {
