@@ -9,6 +9,8 @@ var mongourl = 'mongodb://noctis:123456@ds141434.mlab.com:41434/noctisyeung';
 var ObjectId = require('mongodb').ObjectID;
 var upload = require("express-fileupload");
 var loginCookie; //variable for cookie-session
+var errFlag = '';
+var showReg = 0;
 
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname + "/public")); // mkdir for css file
@@ -26,7 +28,9 @@ app.use(session({ //setting up the session
 app.use(upload());
 
 app.get('/login',  function(req, res, next) { //For login page use
-res.render("login");
+res.render("login", {flag: errFlag, showReg: showReg});
+showReg = 0;
+errFlag = '';
 });
 
 app.get('/main',  function(req, res, next) { //For main page use
@@ -329,6 +333,8 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
     var restaurant = {};
     var address = {};
     //This section is using to check the value in create form and innitial it to restaurant---------
+    loginCookie = req.session;
+    if (loginCookie.userid){
     restaurant['name'] = req.body.name;
     if (req.body.borough)
         restaurant['borough'] = req.body.borough;
@@ -369,29 +375,57 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
                 return res.redirect('/display?id='+objid);
             });
         });
-    });
+    });}
+    else{
+        res.status('500'); //Define server status
+        return res.redirect('/login');
+    }
 });
 
 app.post('/doRegister', function(req, res, next){ //This function is handling the register action (*Not finsihed the error handling)
     loginCookie = req.session;
+    var checkUser = true;
     var new_user = {};
     if (req.body.userid)
         new_user['userid'] = req.body.userid;
     if (req.body.password && (req.body.password==req.body.repassword)) //check the input and initialize it to a json
         new_user['password'] = req.body.password;
     else{
+        errFlag = 'notsame';
+        showReg = 1;
         return res.redirect('/login');}
     if(new_user['password']&& new_user['userid']&&(req.body.password==req.body.repassword)){
+        errFlag = '';
+        showReg = 0;
     MongoClient.connect(mongourl, function(err, db) {
         assert.equal(err,null);
-        console.log(new_user);
         console.log('Connected to MongoDB\n');
-        addUser(db,new_user,function(result){
-        db.close();
+        dofindapi(db,'finduser',{}, function(userresult){ // check existing user ?show message: pass
+            for (var i=0;i<userresult.length;i++){
+                if (new_user['userid'] == userresult[i].userid){
+                    console.log('in');
+                    checkUser = false;
+                }
+            }
+        if (checkUser == false){
+            console.log('in2');
+            db.close();
+            errFlag = 'existerr';
+            showReg = 1;
+            return res.redirect('/login');
+        }
+        else{
+            addUser(db,new_user,function(result){
+            db.close();
+            errFlag = '';
+            showReg = 0;
+            loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
+            return res.redirect('/main')
+        });
+        }
     });
     });
-    loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
-    return res.redirect('/main')}
+}
 });
 
 app.post('/api/restaurant/create',function(req,res, next){
@@ -477,13 +511,21 @@ app.post('/doLogin',function(req,res, next){ //This function is handling the log
         next();} 
         else{
         //console.log('test2'); //testing use
-        return res.render('login', {flag: 1}); //flag is not using right now
-        return next();}}
+        errFlag = 'passerr';
+        res.status('402');
+        return res.redirect('/login'); //flag is not using right now
+        }}
         else{
-        return res.send('userid not exist');
+        errFlag = 'usererr';
+        res.status('402');
         return res.redirect('/login');}
     });
     });
+});
+
+app.use(function(req, res, next) {
+    res.status(404);
+    res.send('404: Page Not Found');
 });
 
 function addUser(db,new_user,callback){ //This function is using with /doRegister doing insert
@@ -519,6 +561,18 @@ function dofindapi(db,type,criteria,callback){ //This function is using to findR
         callback(result);
     }); 
     }
+    if (type == "finduser"){ //find api key //check user function
+        console.log('finding user!!!');
+        cursor = db.collection('owner').find(criteria,{'userid': 1});
+        cursor.each(function(err,doc){
+            if(doc!=null){
+                result.push(doc);
+            }
+            else{
+                callback(result);
+            }
+        }); 
+        }
 };
 
 function findRestaurant(db,criteria,callback){ //This function is using to findRestaurant

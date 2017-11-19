@@ -5,6 +5,28 @@
     <title>S381F Project</title>
     </head>
     <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <%if(showReg == 1){%>
+    <script>
+        $(function(){
+            $('.login-form').css('display','none');
+            $('button[name="register"]').hide();
+            $('button[name="login"]').show();
+            $('.register-form').show();
+            $("#logRegPage").text("Register Page");
+        });
+    </script>
+    <%}%>
+    <%if(showReg == 0) {%>
+        <script>
+            $(function(){
+                $('.register-form').css('display','none');
+                $('button[name="register"]').show();
+                $('button[name="login"]').hide();
+                $('.login-form').show();
+                $("#logRegPage").text("Login Page");
+            });
+        </script>
+            <%}%>
     <script>
         $(function(){
         $('button[name="register"]').click(function(){
@@ -13,8 +35,8 @@
             $('button[name="login"]').show();
             $('.register-form').show();
             $("#logRegPage").text("Register Page");
-         });
         });
+        });  
         $(function(){
         $('button[name="login"]').click(function(){
             $('.register-form').css('display','none');
@@ -32,6 +54,12 @@
         <form action = '/doLogin' method = 'post' class = 'login-form'>
             User Name: <input type = 'text' name = 'userid' required><br>
             Password: <input type = 'password' name = 'password' required><br>
+            <%if(flag == 'passerr'){%>
+            <p name = 'err'>Username or Password is not right</p>
+            <%}%>
+            <%if(flag == 'usererr'){%>
+                <p name = 'err'>User is not exist</p>
+            <%}%>
             <button type = 'submit'>Login</button>
         </form>
             
@@ -39,6 +67,12 @@
             User Name: <input type = 'text' name = 'userid' required><br>
             Password: <input type = 'password' name = 'password' required><br>
             Comfirm Password: <input type = 'password' name = 'repassword' required><br>
+            <%if(flag=='notsame') {%>
+            <p name = 'err'>Plz comfirm your password</p>
+            <%}%>
+            <%if(flag=='existerr') {%>
+                <p name = 'err'>Account already exist!!</p>
+            <%}%>
             <button type = 'submit'>Register</button> 
         </form>
             <message><%= locals.error %></message>

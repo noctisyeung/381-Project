@@ -41,6 +41,9 @@
 .form button:hover,.form button:active,.form button:focus {
   background: #43A047;
 }
+p{
+  color: red;
+}
 .form .message {
   margin: 15px 0 0;
   color: #b3b3b3;
