@@ -2,13 +2,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--For responsive html-->
         <div class = 'header'>
         <head>
-        <link rel="stylesheet" href="/css/main.css" />
+        <link rel="stylesheet" href="/css/create.css" />
         <title>S381F Project Create New Restaurants</title>
         <h1>Restaurants</h1>
         <h2 class = 'userDetail'>Create New Restaurant</h2>
+        <button onclick="location.href='/doLogout'" id='logout'>Logout</button>
         </head>
         </div>
         <body>
+            <div class="form-style-6">
             <form action="/doCreateRestaurants" method="post" enctype='multipart/form-data'>
                 Name: <input type="text" name="name" required><br>
                 Borough: <input type="text" name="borough"><br>
@@ -19,7 +21,7 @@
                 GPS Coordinates (lon.): <input type="text" name="coordLon"><br>
                 GPS Coordinates (lat.): <input type="text" name="coordLat"><br>
                 <input type="hidden" name='userid' value=<%=userid%>>
-                Photos: <input type="file" name="filetoupload"><br>
+                Photos: <input type="file" name="filetoupload" accept="image/*"><br>
                 <input type="submit" value="Create">
             </form>
             <button onclick="goBack()">Go Back</button>
@@ -28,5 +30,6 @@
                         window.history.back();
                     }
             </script>
+            <div class="form-style-6"></div>
         </body>
     </html>

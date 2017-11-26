@@ -1,17 +1,17 @@
 .header {
     background: grey;
-    height: 20%;
+    height: auto;
+    width:100%
     vertical-align: middle;
     text-align:center;
     top: 0;
     left: 0;
     padding:auto;
 }
-
-.userDetail{
+    .userDetail{
     color: white;
     line-height: auto;
-}
+    }
 nav {
     line-height:30px;
     background-color:#eeeeee;
@@ -104,16 +104,37 @@ li.nostyle {
     cursor: pointer;
     }
     #searchselect{
-    top: 0;
-    right: 0;
-    height: 42px;
+    position: absolute;
+    top: 7px;
+    right: 80px;
+    height: 30px;
     width: 80px;
     font-size: 14px; 
     border-width: 0;
+    -webkit-border-radius: 0px 5px 5px 0px;
+    -moz-border-radius: 0px 5px 5px 0px;
+    border-radius: 0px 5px 5px 0px;
+    cursor: pointer;
     }
 #create{
     height: 42px;
     width: 100%;
+    font-size: 14px;
+    color: #fff;
+    text-align: center;
+    line-height: 42px;
+    border-width: 0;
+    background-color:blue;
+    -webkit-border-radius: 0px 5px 5px 0px;
+    -moz-border-radius: 0px 5px 5px 0px;
+    border-radius: 0px 5px 5px 0px;
+    cursor: pointer;
+}
+#logout{
+    height: 42px;
+    width: auto;
+    padding-left: 5%;
+    padding-right: 5%;
     font-size: 14px;
     color: #fff;
     text-align: center;

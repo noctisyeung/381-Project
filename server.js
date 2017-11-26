@@ -3,8 +3,7 @@ var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 var app = express();
 var bodyParser = require('body-parser');
-var cookieParser = require('cookie-parser');
-var session = require('express-session');
+var session = require('cookie-session');
 var mongourl = 'mongodb://noctis:123456@ds141434.mlab.com:41434/noctisyeung';
 var ObjectId = require('mongodb').ObjectID;
 var upload = require("express-fileupload");
@@ -12,20 +11,21 @@ var loginCookie; //variable for cookie-session
 var errFlag = '';
 var showReg = 0;
 
+//The below part is setting up the requirement
+
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname + "/public")); // mkdir for css file
 app.use(bodyParser.json());  //Get query from the form
 app.use(bodyParser.urlencoded({ extended: true })); 
-app.use(cookieParser('sessiontest')); //setting up the cookie
 app.use(session({ //setting up the session
-    secret: 'sessiontest',
-    resave: true,
-    saveUninitialized: false,
-    cookie: {
-        maxAge: 500 * 1000 //setting up the time limit of cookie (ms)
-    }
+    name: 'session',
+    keys: ['This is the key','You can not see this','No one see me'], //This is secret key for cookie
+    maxAge: 500 * 1000 //setting up the time limit of cookie (ms)
    }));
-app.use(upload());
+app.use(upload({
+}));
+
+////The below part is using to handling the get method
 
 app.get('/login',  function(req, res, next) { //For login page use
 res.render("login", {flag: errFlag, showReg: showReg});
@@ -33,18 +33,42 @@ showReg = 0;
 errFlag = '';
 });
 
+app.get('/doLogout', function(req,res) {
+    req.session = null;  // clear all session data
+    res.redirect('/');
+  })
+
 app.get('/main',  function(req, res, next) { //For main page use
     loginCookie = req.session;
     var userid = loginCookie.userid;
     var key = null;
     var criteria ={}
     var query = req.query
-    if (query.name||query.borough||query.cuisine){
-        for (key in query){
-            criteria[key] = query[key];
-        }
+    var condition = 'main'; //default condition for controling the search restaurants
+    //checking and intializing
+    if (query.name)
+        criteria['name'] = query.name;
+    if (query.borough)
+        criteria['borough'] = query.borough;
+    if (query.cuisine)
+        criteria['cuisine'] = query.cuisine;
+    if (query.street)
+        criteria["address.street"] = query.street;
+    if (query.zipcode)
+        criteria["address.zipcode"] = query.zipcode;
+    if (query.building)
+        criteria["address.building"] = query.building;
+    if (query.lon)
+        criteria["address.coord.0"] = query.lon;
+    if (query.lat)
+        criteria["address.coord.1"] = query.lat;
+    //allow or search
+    if (query.or == 'true'){
+        console.log(typeof(criteria));
+        criteria = JSON.stringify(criteria).replace(',','},{');
+        criteria = JSON.parse('['+criteria+']');
+        condition = 'mainor'
     }
-    console.log(criteria);
     if(loginCookie.userid){ //check is it still login
         MongoClient.connect(mongourl, function(err, db) {
             assert.equal(err,null);
@@ -53,30 +77,34 @@ app.get('/main',  function(req, res, next) { //For main page use
                 console.log('first /api function disconnected to MongoDB\n');
                 key = result1.api;
             });
-            findRestaurant(db,'main',criteria,function(result2){ //fetching data in DB
+            findRestaurant(db,condition,criteria,function(result2){ //fetching data in DB
             db.close();
             console.log('sec /main disconnected to MongoDB\n');
             if (result2.length == 0){
                 res.status(500);
-                return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: {}});
+                return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: {},apikey:key});
             }
             else{
                 //console.log(result);//testing use 
+                res.status(200);
                 return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: result2,apikey:key});
             }
         });
         });
     }
-    else
-    return res.redirect('/login');
+    else{
+    res.status(403);
+    return res.redirect('/login');}
     });
 
 app.get('/', function(req,res,next) { //Redirect the user to login page
     loginCookie = req.session;
-    if(loginCookie.userid) //check is it still login, if logged in and not timeout go to the main page
-    return res.redirect('/main')
-    else
-    return res.redirect('/login');
+    if(loginCookie.userid){ //check is it still login, if logged in and not timeout go to the main page
+    res.status(200);
+    return res.redirect('/main')}
+    else{
+    res.status(403);
+    return res.redirect('/login');}
     });
 
 app.get('/createRestaurant', function(req,res,next) { //Get the createRestaurants Page
@@ -102,15 +130,222 @@ app.get('/change', function(req,res,next) { //edit button handler in the display
                     return res.render("change",{title: {vaild:"Error"}});
                 }
                 else{
-                    console.log(doc);
+                    // testing use console.log(doc);
+                    res.status(200);
                     return res.render("change",{title: {vaild:"Change New Restaurant"},restaurant: doc});
                 }
             });
             });
         }
-        else
-        return res.redirect('/login');
+        else{
+        res.status(403);
+        return res.redirect('/login');}
         });
+
+//The below part is using to handling the post method
+
+app.post('/rate', function(req,res,next) { //edit button handler in the change page
+    loginCookie = req.session;
+    if(loginCookie.userid){ //check is it still login
+        var criteria = {};
+        criteria['_id'] = ObjectId(req.body._id);
+        console.log("score:"+req.body.score);
+        var score ={user : loginCookie.userid,score:req.body.score};
+        //This section is using to check the value in create form and innitial it to restaurant---------
+        MongoClient.connect(mongourl, function(err, db) {//connect with mongo
+        assert.equal(err,null);
+        console.log('Connected to MongoDB\n');
+        dorate(db,criteria,score,function(result){//pass the value and call the update function , callback
+            db.close();
+            console.log('/rate disconnected to MongoDB\n');
+            console.log("rate finish");
+            res.status(200);
+            return res.redirect('/display?id='+req.body._id);
+            });
+        });
+    }
+    else{
+        res.status(403);
+        return res.redirect('/login');}
+});
+
+app.get('/display', function(req,res,next) { 
+    loginCookie = req.session;
+    var id = req.query.id;
+    if(loginCookie.userid){ //check is it still login
+        MongoClient.connect(mongourl, function(err, db) {
+            assert.equal(err,null);
+            console.log('Connected to MongoDB\n');
+            db.collection('ownerRestaurants').findOne({'_id':  ObjectId(id)},function(err,doc){ //fetching data in DB
+            db.close();
+            console.log('/main disconnected to MongoDB\n');
+            if (doc == null){
+                res.status(500);
+                return res.render("display",{restaurant: {}});
+            }
+            else{
+                var rated = false;
+                for(var key in doc.rate){
+                    if(doc.rate[key].user == loginCookie.userid)
+                        rated = true;
+                    }
+                if(doc.rate == null  || rated == false){
+                    console.log(doc);
+                    res.status(200);
+                    return res.render("display",{restaurant: doc,rated:false});
+                }else{
+                //console.log(doc);//testing use 
+                res.status(200);
+                return res.render("display",{restaurant: doc,rated:true});
+                }
+            }
+        });
+        });
+    }
+    else{
+    res.status(403);
+    return res.redirect('/login');}
+    });
+
+app.get('/gmap', function(req,res,next){ // Handling the google map function
+    loginCookie = req.session;
+    if (loginCookie.userid){
+    res.status(200);
+    res.render("gmap.ejs", {
+        lat:req.query.lat,
+        lon:req.query.lon,
+        title:req.query.title
+    });
+    res.end();
+    }
+    else {//If not logged in or timeout, redirect to login
+    res.status(403);
+    return res.redirect('/login');}
+});
+
+
+app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
+    var type = req.params[0];               //getting the incomeing type form URL
+    var value = req.params[1];   //getting the incomeing value form URL
+    var condition = {};
+    switch(type){
+        case 'name':
+        condition['name'] = value;
+        break;
+        case 'borough':
+        condition['borough'] = value;
+        break;
+        case 'cuisine':
+        condition['cuisine'] = value;
+        break;
+        default:
+        return res.send({});
+    }
+    MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('/api doSearch Connected to MongoDB\n');
+        findRestaurant(db,'api',condition,function(result){
+            console.log('/api doSearch disConnected to MongoDB\n');
+            return res.send(result);
+        });
+});
+});
+
+
+app.get('/doSearch',function(req,res, next){ //Additional Search function
+    var condition = {};
+    loginCookie = req.session;
+    if(loginCookie.userid){
+    if(req.query.keyword){
+    req.query.keyword = req.query.keyword.replace(/ /g ,'"\s"');
+    console.log(req.query.keyword);
+    switch(req.query.option){
+        case 'borough':
+            condition['borough'] =  new RegExp(req.query.keyword,'i');
+            break;
+        case 'cuisine':
+            condition['cuisine'] = new RegExp(req.query.keyword,'i');
+            break;
+        default:
+            condition['name'] = new RegExp(req.query.keyword,'i');
+            console.log('OK2');
+            break;
+    }
+    console.log(condition);
+    MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('/doSearch Connected to MongoDB\n');
+        findRestaurant(db,'main',condition,function(result){ //searching the database
+        db.close();
+        console.log('/doSearch disconnected to MongoDB\n');
+        if (result.length == 0||result == undefined){
+            res.status(500);
+            res.render('searchResult',{message: 'No result',restaurants: {}});
+        }
+        else{
+            res.status(200);
+            res.render('searchResult',{message: 'Found '+result.length+' result',restaurants: result});
+        }
+    });
+    });}
+    else{
+    res.status(500);
+    res.render('searchResult',{message: 'Please Enter Something......',restaurants: {}});
+    res.end();}
+}
+    else{
+    res.status(403);
+    return res.redirect('/login');}
+});
+
+app.get('/remove',function(req,res,next){ //delete button handler in the display page
+    loginCookie = req.session;
+    var id = req.query.id;
+    if(loginCookie.userid){ //check is it still login
+        MongoClient.connect(mongourl, function(err, db) {
+            assert.equal(err,null);
+            console.log('Connected to MongoDB\n');
+            db.collection('ownerRestaurants').findOne({'_id':  ObjectId(id)},function(err,doc){ //check owner
+            db.close();
+            console.log('/main disconnected to MongoDB\n');
+            if (doc.owner != loginCookie.userid){// if user not own the data
+                res.status(500);
+                return res.render("delete",{title: {vaild:"Error"}});
+            }
+            else{
+                res.status(200);
+                return res.render("delete",{title: {vaild:"Delete"},restaurant: doc});
+            }
+        });
+        });
+    }
+    else{
+    res.status(403);
+    return res.redirect('/login');}
+    });
+
+app.post('/remove', function(req,res,next) { //delete button handler in the delete page
+    loginCookie = req.session;
+    var id = req.query.id;
+    if(loginCookie.userid){ //check is it still login
+        var criteria = {};
+        criteria['_id'] = ObjectId(req.body._id);
+        MongoClient.connect(mongourl, function(err, db) {
+        assert.equal(err,null);
+        console.log('Connected to MongoDB\n');
+        dodelete(db,criteria,function(result){
+            db.close();
+            console.log('/main disconnected to MongoDB\n');
+            console.log("delete finish");
+            res.status(200);
+            return res.render("delete",{title: {vaild:"Deleted"}});
+            });
+        });
+    }
+    else{
+        res.status(403);
+        return res.redirect('/login');}
+});
 
 app.post('/change', function(req,res,next) { //edit button handler in the change page
     loginCookie = req.session;
@@ -152,211 +387,15 @@ app.post('/change', function(req,res,next) { //edit button handler in the change
             db.close();
             console.log('/main disconnected to MongoDB\n');
             console.log("update finish");
+            res.status(200);
             return res.render("change",{title: {vaild:"updated"}});
             });
         });
     }
-    else
-        return res.redirect('/login');
-});
-
-app.post('/rate', function(req,res,next) { //edit button handler in the change page
-    loginCookie = req.session;
-    if(loginCookie.userid){ //check is it still login
-        var criteria = {};
-        criteria['_id'] = ObjectId(req.body._id);
-        console.log("score:"+req.body.score);
-        var score ={user : loginCookie.userid,score:req.body.score};
-        //This section is using to check the value in create form and innitial it to restaurant---------
-        MongoClient.connect(mongourl, function(err, db) {//connect with mongo
-        assert.equal(err,null);
-        console.log('Connected to MongoDB\n');
-        dorate(db,criteria,score,function(result){//pass the value and call the update function , callback
-            db.close();
-            console.log('/rate disconnected to MongoDB\n');
-            console.log("rate finish");
-            return res.redirect('/display?id='+req.body._id);
-            });
-        });
-    }
-    else
-        return res.redirect('/login');
-});
-
-
-
-
-
-app.get('/remove',function(req,res,next){ //delete button handler in the display page
-    loginCookie = req.session;
-    var id = req.query.id;
-    if(loginCookie.userid){ //check is it still login
-        MongoClient.connect(mongourl, function(err, db) {
-            assert.equal(err,null);
-            console.log('Connected to MongoDB\n');
-            db.collection('ownerRestaurants').findOne({'_id':  ObjectId(id)},function(err,doc){ //check owner
-            db.close();
-            console.log('/main disconnected to MongoDB\n');
-            if (doc.owner != loginCookie.userid){// if user not own the data
-                res.status(500);
-                return res.render("delete",{title: {vaild:"Error"}});
-            }
-            else{
-                return res.render("delete",{title: {vaild:"Delete"},restaurant: doc});
-            }
-        });
-        });
-    }
-    else
-    return res.redirect('/login');
-    });
-
-app.post('/remove', function(req,res,next) { //delete button handler in the delete page
-        loginCookie = req.session;
-        var id = req.query.id;
-        if(loginCookie.userid){ //check is it still login
-            var criteria = {};
-            criteria['_id'] = ObjectId(req.body._id);
-            MongoClient.connect(mongourl, function(err, db) {
-            assert.equal(err,null);
-            console.log('Connected to MongoDB\n');
-            dodelete(db,criteria,function(result){
-                db.close();
-                console.log('/main disconnected to MongoDB\n');
-                console.log("delete finish");
-                return res.render("delete",{title: {vaild:"Deleted"}});
-                });
-            });
-        }
-        else
-            return res.redirect('/login');
-    });
-
-
-
-app.get('/display', function(req,res,next) { 
-    loginCookie = req.session;
-    var id = req.query.id;
-    if(loginCookie.userid){ //check is it still login
-        MongoClient.connect(mongourl, function(err, db) {
-            assert.equal(err,null);
-            console.log('Connected to MongoDB\n');
-            db.collection('ownerRestaurants').findOne({'_id':  ObjectId(id)},function(err,doc){ //fetching data in DB
-            db.close();
-            console.log('/main disconnected to MongoDB\n');
-            if (doc == null){
-                res.status(500);
-                return res.render("display",{restaurant: {}});
-            }
-            else{
-                var rated = false;
-                for(var key in doc.rate){
-                    if(doc.rate[key].user == loginCookie.userid)
-                        rated = true;
-                    }
-                if(doc.rate == null  || rated == false){
-                    console.log(doc);
-                    return res.render("display",{restaurant: doc,rated:false});
-                }else{
-                //console.log(doc);//testing use 
-                return res.render("display",{restaurant: doc,rated:true});
-                }
-            }
-        });
-        });
-    }
-    else
-    return res.redirect('/login');
-    });
-
-app.get('/gmap', function(req,res,next){ // Handling the google map function
-    loginCookie = req.session;
-    if (loginCookie.userid){
-    res.render("gmap.ejs", {
-        lat:req.query.lat,
-        lon:req.query.lon,
-        title:req.query.title
-    });
-    res.end();
-    }
-    else //If not logged in or timeout, redirect to login
-    return res.redirect('/login');
-});
-
-
-app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
-    var type = req.params[0];               //getting the incomeing type form URL
-    var value = req.params[1];   //getting the incomeing value form URL
-    var condition = {};
-    switch(type){
-        case 'name':
-        condition['name'] = value;
-        break;
-        case 'borough':
-        condition['borough'] = value;
-        break;
-        case 'cuisine':
-        condition['cuisine'] = value;
-        break;
-        default:
-        return res.send({});
-    }
-    MongoClient.connect(mongourl, function(err, db) {
-        assert.equal(err,null);
-        console.log('/api doSearch Connected to MongoDB\n');
-        findRestaurant(db,'api',condition,function(result){
-            console.log('/api doSearch disConnected to MongoDB\n');
-            return res.send(result);
-        });
-});
-});
-
-
-app.get('/doSearch',function(req,res, next){ //Search function
-    var condition = {};
-    loginCookie = req.session;
-    if(loginCookie.userid){
-    if(req.query.keyword){
-    req.query.keyword = req.query.keyword.replace(/ /g ,'"\s"');
-    console.log(req.query.keyword);
-    switch(req.query.option){
-        case 'borough':
-            condition['borough'] =  new RegExp(req.query.keyword,'i');
-            break;
-        case 'cuisine':
-            condition['cuisine'] = new RegExp(req.query.keyword,'i');
-            break;
-        default:
-            condition['name'] = new RegExp(req.query.keyword,'i');
-            console.log('OK2');
-            break;
-    }
-    console.log(condition);
-    MongoClient.connect(mongourl, function(err, db) {
-        assert.equal(err,null);
-        console.log('/doSearch Connected to MongoDB\n');
-        findRestaurant(db,'search',condition,function(result){ //searching the database
-        db.close();
-        console.log('/doSearch disconnected to MongoDB\n');
-        if (result.length == 0||result == undefined){
-            console.log(result);
-            res.render('searchResult',{message: 'No result',restaurants: {}});
-        }
-        else{
-            console.log(result);
-            res.render('searchResult',{message: 'Found '+result.length+' result',restaurants: result});
-        }
-    });
-    });}
     else{
-    res.status(500);
-    res.render('searchResult',{message: 'Please Enter Something......',restaurants: {}});
-    res.end();}
-}
-    else
-    return res.redirect('/login');
+        res.status(403);
+        return res.redirect('/login');}
 });
-
 
 app.post('/doCreateRestaurants', function(req, res, next){ //This function is handling the create restaurant action
     var restaurant = {};
@@ -402,12 +441,13 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
                 db.close();
                 console.log('/added restid\n');
                 console.log('/doupdate disconnected to MongoDB add restid\n');
+                res.status(200);
                 return res.redirect('/display?id='+objid);
             });
         });
     });}
     else{
-        res.status('500'); //Define server status
+        res.status('403'); //Define server status
         return res.redirect('/login');
     }
 });
@@ -423,6 +463,7 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
     else{
         errFlag = 'notsame';
         showReg = 1;
+        res.status(403);
         return res.redirect('/login');}
     if(new_user['password']&& new_user['userid']&&(req.body.password==req.body.repassword)){
         errFlag = '';
@@ -433,15 +474,14 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
         dofindapi(db,'finduser',{}, function(userresult){ // check existing user ?show message: pass
             for (var i=0;i<userresult.length;i++){
                 if (new_user['userid'] == userresult[i].userid){
-                    console.log('in');
                     checkUser = false;
                 }
             }
         if (checkUser == false){
-            console.log('in2');
             db.close();
             errFlag = 'existerr';
             showReg = 1;
+            res.status(403);
             return res.redirect('/login');
         }
         else{
@@ -456,6 +496,7 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
             console.log('/added apikey\n');
             console.log('/doupdate disconnected to MongoDB add api\n');
             loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
+            res.status(200);
             return res.redirect('/main');
             });
         });
@@ -563,10 +604,8 @@ app.post('/doLogin',function(req,res, next){ //This function is handling the log
     });
 });
 
-app.use(function(req, res, next) {
-    res.status(404);
-    res.send('404: Page Not Found');
-});
+
+//The below part is using for handling function to database
 
 function addUser(db,new_user,callback){ //This function is using with /doRegister doing insert
     db.collection('owner').insert(new_user,function(err,result){
@@ -628,8 +667,9 @@ function findRestaurant(db,type,criteria,callback){ //This function is using to 
             callback(result);
         }
         });
-    }else{
-    cursor = db.collection('ownerRestaurants').find(criteria,{name: 1});
+    }
+    else if (type == 'main'){
+    cursor = db.collection('ownerRestaurants').find(criteria,{name: 1}); //normal search
     cursor.each(function(err,doc){
     assert.equal(err,null);
     if(doc!=null){
@@ -639,7 +679,18 @@ function findRestaurant(db,type,criteria,callback){ //This function is using to 
         callback(result);
     }
     });
-};
+}
+    else if (type == 'mainor'){
+        cursor = db.collection('ownerRestaurants').find({$or: criteria},{name: 1}); // search in $or operation
+        cursor.each(function(err,doc){
+        if(doc!=null){
+            result.push(doc);
+        }
+        else{
+            callback(result);
+        }
+        });
+    };
 }
 
 function doupdate(db,type,criteria,newdata,callback){
@@ -678,5 +729,9 @@ function dorate(db,criteria,score,callback){
 	});
 };
 
+app.use(function(req, res, next) { // This use method need to place at the bottom
+    res.status(404);
+    res.send('404: Page Not Found');
+});
 
 app.listen(process.env.PORT || 8099);

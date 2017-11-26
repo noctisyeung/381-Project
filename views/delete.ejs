@@ -1,5 +1,6 @@
 <html>
     <head>
+        <link rel="stylesheet" href="/css/create.css" />
         <title><%=title.vaild%></title>
     <script>function goBack(){
         
@@ -17,7 +18,7 @@
         <form action="/remove" method="post">
         <p>
         <input type="hidden" name="_id" value="<%=restaurant._id%>">
-            <button type = 'submit'>Delete</button></p>
+        <button type = 'submit'>Delete</button></p>
       </form>
     <%}if (title.vaild == "Deleted"){%>
         <p>Deleted!!</p>

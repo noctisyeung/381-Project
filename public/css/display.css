@@ -25,7 +25,7 @@ ul {
   }
   button{
     height: 42px;
-    width: 5%;
+    width: auto;
     font-size: 14px;
     color: #fff;
     text-align: center;
@@ -39,13 +39,29 @@ ul {
 }
 input{
   height: 42px;
-  width: 5%;
+  width: auto;
   font-size: 14px;
   color: #fff;
   text-align: center;
   line-height: 42px;
   border-width: 0;
   background-color:blueviolet;
+  -webkit-border-radius: 0px 5px 5px 0px;
+  -moz-border-radius: 0px 5px 5px 0px;
+  border-radius: 0px 5px 5px 0px;
+  cursor: pointer;
+}
+#logout{
+  height: 42px;
+  width: auto;
+  padding-left: 5%;
+  padding-right: 5%;
+  font-size: 14px;
+  color: #fff;
+  text-align: center;
+  line-height: 42px;
+  border-width: 0;
+  background-color:blue;
   -webkit-border-radius: 0px 5px 5px 0px;
   -moz-border-radius: 0px 5px 5px 0px;
   border-radius: 0px 5px 5px 0px;
