@@ -5,7 +5,6 @@
         <link rel="stylesheet" href="/css/display.css" />
         <title>S381F Project Dashboard</title>
         <h1><%=restaurant.name%></h1>
-        <button onclick="location.href='/doLogout'" id='logout'>Logout</button>
         </head>
         </div>
         <body>
@@ -49,11 +48,6 @@
                 <%}%>
                 <button onclick="location.href='/change?id=<%=restaurant._id%>'">Edit</button>
                 <button onclick="location.href='/remove?id=<%=restaurant._id%>'">Delete</button>
-                <button onclick="goBack()">Go Back</button>
-                <script>
-                        function goBack() {
-                            window.history.back();
-                        }
-                </script>
+                <button onclick="location.href='/main'">Go Back</button>
         </body>
     </html>

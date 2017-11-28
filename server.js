@@ -82,11 +82,13 @@ app.get('/main',  function(req, res, next) { //For main page use
             console.log('sec /main disconnected to MongoDB\n');
             if (result2.length == 0){
                 res.status(500);
+                res.header("Content-Type", "text/html");
                 return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: {},apikey:key});
             }
             else{
                 //console.log(result);//testing use 
                 res.status(200);
+                res.header("Content-Type", "text/html");
                 return res.render("main",{content: 'Welcome ' + loginCookie.userid,restaurants: result2,apikey:key});
             }
         });
@@ -94,6 +96,7 @@ app.get('/main',  function(req, res, next) { //For main page use
     }
     else{
     res.status(403);
+    res.header("Content-Type", "text/html");
     return res.redirect('/login');}
     });
 
@@ -101,18 +104,26 @@ app.get('/', function(req,res,next) { //Redirect the user to login page
     loginCookie = req.session;
     if(loginCookie.userid){ //check is it still login, if logged in and not timeout go to the main page
     res.status(200);
+    res.header("Content-Type", "text/html");
     return res.redirect('/main')}
     else{
     res.status(403);
+    res.header("Content-Type", "text/html");
     return res.redirect('/login');}
     });
 
 app.get('/createRestaurant', function(req,res,next) { //Get the createRestaurants Page
     loginCookie = req.session;
-    if(loginCookie.userid) //check is it still login
-    return res.render('createRestaurant',{userid: loginCookie.userid});
-    else
-    return res.redirect('/login');
+    if(loginCookie.userid){//check is it still login
+        res.status(200); 
+        res.header("Content-Type", "text/html");
+        return res.render('createRestaurant',{userid: loginCookie.userid});
+    }
+    else{
+        res.status(403);
+        res.header("Content-Type", "text/html");
+        return res.redirect('/login');
+    }
     });
 
 app.get('/change', function(req,res,next) { //edit button handler in the display page
@@ -127,11 +138,13 @@ app.get('/change', function(req,res,next) { //edit button handler in the display
                 console.log('/main disconnected to MongoDB\n');
                 if (doc.owner != loginCookie.userid){// if user not own the data
                     res.status(500);
+                    res.header("Content-Type", "text/html");
                     return res.render("change",{title: {vaild:"Error"}});
                 }
                 else{
                     // testing use console.log(doc);
                     res.status(200);
+                    res.header("Content-Type", "text/html");
                     return res.render("change",{title: {vaild:"Change New Restaurant"},restaurant: doc});
                 }
             });
@@ -139,6 +152,7 @@ app.get('/change', function(req,res,next) { //edit button handler in the display
         }
         else{
         res.status(403);
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');}
         });
 
@@ -160,12 +174,14 @@ app.post('/rate', function(req,res,next) { //edit button handler in the change p
             console.log('/rate disconnected to MongoDB\n');
             console.log("rate finish");
             res.status(200);
+            res.header("Content-Type", "text/html");
             return res.redirect('/display?id='+req.body._id);
             });
         });
     }
     else{
         res.status(403);
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');}
 });
 
@@ -184,7 +200,7 @@ app.get('/display', function(req,res,next) {
                 return res.render("display",{restaurant: {}});
             }
             else{
-                var rated = false;
+                var rated = false;          //check if the user was rated
                 for(var key in doc.rate){
                     if(doc.rate[key].user == loginCookie.userid)
                         rated = true;
@@ -192,10 +208,12 @@ app.get('/display', function(req,res,next) {
                 if(doc.rate == null  || rated == false){
                     console.log(doc);
                     res.status(200);
+                    res.header("Content-Type", "text/html");
                     return res.render("display",{restaurant: doc,rated:false});
                 }else{
                 //console.log(doc);//testing use 
                 res.status(200);
+                res.header("Content-Type", "text/html");
                 return res.render("display",{restaurant: doc,rated:true});
                 }
             }
@@ -204,6 +222,7 @@ app.get('/display', function(req,res,next) {
     }
     else{
     res.status(403);
+    res.header("Content-Type", "text/html");
     return res.redirect('/login');}
     });
 
@@ -211,6 +230,7 @@ app.get('/gmap', function(req,res,next){ // Handling the google map function
     loginCookie = req.session;
     if (loginCookie.userid){
     res.status(200);
+    res.header("Content-Type", "text/html");
     res.render("gmap.ejs", {
         lat:req.query.lat,
         lon:req.query.lon,
@@ -220,6 +240,7 @@ app.get('/gmap', function(req,res,next){ // Handling the google map function
     }
     else {//If not logged in or timeout, redirect to login
     res.status(403);
+    res.header("Content-Type", "text/html");
     return res.redirect('/login');}
 });
 
@@ -239,6 +260,8 @@ app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
         condition['cuisine'] = value;
         break;
         default:
+        res.status(200);
+        res.header('Content-Type', 'application/json');
         return res.send({});
     }
     MongoClient.connect(mongourl, function(err, db) {
@@ -246,6 +269,8 @@ app.get('/api/restaurant/read/*/*',function(req,res, next){ //search api handle
         console.log('/api doSearch Connected to MongoDB\n');
         findRestaurant(db,'api',condition,function(result){
             console.log('/api doSearch disConnected to MongoDB\n');
+            res.status(200);
+            res.header('Content-Type', 'application/json');
             return res.send(result);
         });
 });
@@ -280,21 +305,25 @@ app.get('/doSearch',function(req,res, next){ //Additional Search function
         console.log('/doSearch disconnected to MongoDB\n');
         if (result.length == 0||result == undefined){
             res.status(500);
+            res.header("Content-Type", "text/html");
             res.render('searchResult',{message: 'No result',restaurants: {}});
         }
         else{
             res.status(200);
+            res.header("Content-Type", "text/html");
             res.render('searchResult',{message: 'Found '+result.length+' result',restaurants: result});
         }
     });
     });}
     else{
     res.status(500);
+    res.header("Content-Type", "text/html");
     res.render('searchResult',{message: 'Please Enter Something......',restaurants: {}});
     res.end();}
 }
     else{
     res.status(403);
+    res.header("Content-Type", "text/html");
     return res.redirect('/login');}
 });
 
@@ -310,10 +339,12 @@ app.get('/remove',function(req,res,next){ //delete button handler in the display
             console.log('/main disconnected to MongoDB\n');
             if (doc.owner != loginCookie.userid){// if user not own the data
                 res.status(500);
+                res.header("Content-Type", "text/html");
                 return res.render("delete",{title: {vaild:"Error"}});
             }
             else{
                 res.status(200);
+                res.header("Content-Type", "text/html");
                 return res.render("delete",{title: {vaild:"Delete"},restaurant: doc});
             }
         });
@@ -321,6 +352,7 @@ app.get('/remove',function(req,res,next){ //delete button handler in the display
     }
     else{
     res.status(403);
+    res.header("Content-Type", "text/html");
     return res.redirect('/login');}
     });
 
@@ -338,12 +370,14 @@ app.post('/remove', function(req,res,next) { //delete button handler in the dele
             console.log('/main disconnected to MongoDB\n');
             console.log("delete finish");
             res.status(200);
+            res.header("Content-Type", "text/html");
             return res.render("delete",{title: {vaild:"Deleted"}});
             });
         });
     }
     else{
         res.status(403);
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');}
 });
 
@@ -376,7 +410,7 @@ app.post('/change', function(req,res,next) { //edit button handler in the change
         }
         else
             restaurant['address'] = address; //return if empty
-        if (req.files.filetoupload){ // This is checking the photo
+        if (req.files.filetoupload != null){ // This is checking the photo
             restaurant['photo'] = req.files.filetoupload.data.toString('base64'); //change the photo to base64 and innitial it to photo
             restaurant['photo mimetype'] = req.files.filetoupload.mimetype; //get the mimetype
         }
@@ -388,12 +422,14 @@ app.post('/change', function(req,res,next) { //edit button handler in the change
             console.log('/main disconnected to MongoDB\n');
             console.log("update finish");
             res.status(200);
+            res.header("Content-Type", "text/html");
             return res.render("change",{title: {vaild:"updated"}});
             });
         });
     }
     else{
         res.status(403);
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');}
 });
 
@@ -442,12 +478,14 @@ app.post('/doCreateRestaurants', function(req, res, next){ //This function is ha
                 console.log('/added restid\n');
                 console.log('/doupdate disconnected to MongoDB add restid\n');
                 res.status(200);
+                res.header("Content-Type", "text/html");
                 return res.redirect('/display?id='+objid);
             });
         });
     });}
     else{
         res.status('403'); //Define server status
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');
     }
 });
@@ -464,6 +502,7 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
         errFlag = 'notsame';
         showReg = 1;
         res.status(403);
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');}
     if(new_user['password']&& new_user['userid']&&(req.body.password==req.body.repassword)){
         errFlag = '';
@@ -482,6 +521,7 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
             errFlag = 'existerr';
             showReg = 1;
             res.status(403);
+            res.header("Content-Type", "text/html");
             return res.redirect('/login');
         }
         else{
@@ -497,6 +537,7 @@ app.post('/doRegister', function(req, res, next){ //This function is handling th
             console.log('/doupdate disconnected to MongoDB add api\n');
             loginCookie.userid = new_user['userid']; //if register sucess redirect to main screen
             res.status(200);
+            res.header("Content-Type", "text/html");
             return res.redirect('/main');
             });
         });
@@ -520,6 +561,8 @@ app.post('/api/restaurant/create',function(req,res, next){
             console.log('/api/restaurant/create checking api disconnected to MongoDB\n');
             if(result == null || req.body.name == null ){
                 console.log('No matched APIKEY!!');
+                res.status(500);
+                res.header('Content-Type', 'application/json');
                 res.send({status: "failed"});}
 
             else{
@@ -545,10 +588,11 @@ app.post('/api/restaurant/create',function(req,res, next){
             else
                 restaurant['address'] = address; //return if empty
                 restaurant['owner'] = result.userid;
-                /*if (req.files.filetoupload){ // This is checking the photo
+                if (req.files != null){ // This is checking the photo
+                    console.log('api geting photos!!');
                     restaurant['photo'] = req.files.filetoupload.data.toString('base64'); //change the photo to base64 and innitial it to photo
                     restaurant['photo mimetype'] = req.files.filetoupload.mimetype; //get the mimetype
-                }*/
+                }
                 MongoClient.connect(mongourl, function(err, db) {
                     assert.equal(err,null);
                     console.log('/api/restaurant/create Connected to MongoDB add data\n');
@@ -561,6 +605,8 @@ app.post('/api/restaurant/create',function(req,res, next){
                         db.close();
                         console.log('/added restid\n');
                         console.log('/doupdate disconnected to MongoDB add restid\n');
+                        res.status(200);
+                        res.header('Content-Type', 'application/json');
                         res.send({status: "ok", _id: objid});  
                     });
                 });
@@ -594,11 +640,13 @@ app.post('/doLogin',function(req,res, next){ //This function is handling the log
         //console.log('test2'); //testing use
         errFlag = 'passerr';
         res.status('402');
+        res.header("Content-Type", "text/html");
         return res.redirect('/login'); //flag is not using right now
         }}
         else{
         errFlag = 'usererr';
         res.status('402');
+        res.header("Content-Type", "text/html");
         return res.redirect('/login');}
     });
     });
